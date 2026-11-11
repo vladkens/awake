@@ -104,6 +104,7 @@ impl Form {
       let caption = named(ON_LAUNCH);
       let row = FormRow::new("Keep awake on launch").caption(&caption);
       ui.form_row(fs, row, |ui| ui.toggle(&mut s.on_launch, ""));
+
       let row = FormRow::new("Allow display to sleep").caption(DISPLAY);
       ui.form_row(fs, row, |ui| ui.toggle(&mut s.display_sleeps, ""));
     });
@@ -112,11 +113,13 @@ impl Form {
   fn battery(&mut self, ui: &mut Ui, fs: &FormStyle) {
     let s = &mut self.shown.settings;
     let tip = (!self.shown.battery).then_some(NO_BATTERY);
+
     ui.form_section(fs, "Battery Level", |ui| {
       let name = format!("Turn off when battery is below {}%", s.floor);
       let caption = named(FLOOR);
       let row = FormRow::new(label(&name, tip)).caption(&caption);
       ui.disabled(tip.is_some()).form_row(fs, row, |ui| ui.toggle(&mut s.floor_on, ""));
+
       let mut floor = s.floor as f32;
       ui.disabled(tip.is_some() || !s.floor_on).form_row(fs, FormRow::new("Level"), |ui| {
         let t = ui.theme().label();
@@ -128,10 +131,12 @@ impl Form {
         ui.text(format!("{FLOOR_MAX}%"), t);
       });
     });
+
     ui.form_section(fs, "Low Power Mode", |ui| {
       let row = FormRow::new("Turn off in Low Power Mode").caption(LOW_POWER);
       ui.form_row(fs, row, |ui| ui.toggle(&mut s.off_in_low_power, ""));
     });
+
     ui.form_section(fs, "Power Adapter", |ui| {
       let caption = named(UNPLUGGED);
       let row = FormRow::new(label("Turn off when unplugged", tip)).caption(&caption);

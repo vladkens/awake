@@ -118,8 +118,11 @@ fn menu(status: &str, mode: Option<usize>) -> Menu<Action> {
     Item::button(Action::Settings, "Settings…").key(Shortcut::char(',').cmd()),
     Item::button(Action::Quit, &format!("Quit {}", INFO.name)).key(Shortcut::char('q').cmd()),
   ]);
+
   Menu::new(items)
 }
+
+// MARK: State
 
 impl State {
   fn on_tray(&mut self, main: &mut Main, action: Action) {
@@ -128,10 +131,10 @@ impl State {
       Action::Settings => self.open_settings(main),
       Action::Quit => main.quit(),
       // The item checked turns it off; another one starts its own session.
-      Action::Mode(mode) => match self.session.as_ref().is_some_and(|s| s.mode == mode) {
-        true => self.stop(None),
-        false => self.start(mode, true),
-      },
+      Action::Mode(mode) if self.session.as_ref().is_some_and(|s| s.mode == mode) => {
+        self.stop(None)
+      }
+      Action::Mode(mode) => self.start(mode, true),
     }
   }
 
@@ -215,6 +218,7 @@ impl State {
     let until = length.map(|length| SystemTime::now() + length);
     self.session = Some(Session { _assertion: assertion, mode, until, forced: why });
     self.stopped = None;
+
     if let Some(length) = length {
       self.wait(length);
     }
@@ -255,6 +259,7 @@ impl State {
   fn countdown(&mut self) {
     let until = self.session.as_ref().and_then(|s| s.until);
     let (true, Some(until)) = (self.menu_open, until) else { return };
+
     self.tick += 1;
     let tick = self.tick;
     let left = until.duration_since(SystemTime::now()).unwrap_or_default();
@@ -343,6 +348,8 @@ impl State {
   }
 }
 
+// MARK: Rules
+
 /// Why the Mac can't stay awake, by the settings: Low Power Mode, a battery at or below the floor,
 /// or running on battery at all.
 fn rule(settings: &Settings, low_power: bool, battery: Option<Battery>) -> Option<String> {
@@ -369,23 +376,28 @@ fn left(until: SystemTime, now: SystemTime) -> String {
   }
 }
 
+// MARK: Launch
+
 fn main() {
   tracing_subscriber::fmt()
     .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
     .with_writer(std::io::stderr)
     .init();
+
   tracing::info!(battery = ?power::battery(), low_power = power::low_power_mode(), "awake");
   nimbo::app(INFO, start);
 }
 
 fn start(main: &mut Main) {
   appkit::set_dock_icon();
+
   let tray = Tray::new(appkit::symbol(&["cup.and.saucer"]), &format!("{}: off", INFO.name));
   // The time left, the login item's state and the battery change while the menu is closed.
   tray.on_open(|_, _| with_state(State::show));
   tray.on_item(|main, _, action| with_state(|state| state.on_tray(main, action)));
   appkit::watch_menu(|open| with_state(|state| state.on_menu(open)));
   main.on_reopen(|main| with_state(|state| state.open_settings(main)));
+
   let state = State {
     tray,
     proxy: main.proxy(),
@@ -400,6 +412,7 @@ fn start(main: &mut Main) {
     _watch: None,
   };
   STATE.set(Some(state));
+
   let watch = power::watch(|change| with_state(|state| state.on_power(change)));
   with_state(|state| {
     state._watch = watch;

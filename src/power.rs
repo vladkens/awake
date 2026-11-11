@@ -3,6 +3,7 @@
 //! to let it sleep again: the battery and Low Power Mode. Both come as notifications on the main
 //! run loop: nothing polls.
 
+use std::cell::OnceCell;
 use std::ffi::{CStr, c_void};
 use std::ptr::NonNull;
 
@@ -72,6 +73,7 @@ pub fn battery() -> Option<Battery> {
   // SAFETY: as above.
   let providing = unsafe { IOPSGetProvidingPowerSourceType(Some(&blob)) };
   let draining = providing.is_some_and(|p| p.to_string() == text(kIOPSBatteryPowerValue));
+
   (0..sources.count()).find_map(|i| {
     // SAFETY: in bounds; the list's values are power sources (CFTypeRef).
     let source = unsafe { (sources.value_at_index(i) as *const CFType).as_ref() }?;
@@ -134,22 +136,25 @@ pub struct Watch {
 }
 
 thread_local! {
-  static ON: std::cell::OnceCell<fn(Change)> = const { std::cell::OnceCell::new() };
+  static ON: OnceCell<fn(Change)> = const { OnceCell::new() };
 }
 
 /// Calls `on` on the main thread with every [`Change`]; the first call wins.
 pub fn watch(on: fn(Change)) -> Option<Watch> {
   ON.with(|cell| cell.set(on).ok())?;
+
   unsafe extern "C-unwind" fn changed(_context: *mut c_void) {
     if let Some(on) = ON.with(|cell| cell.get().copied()) {
       on(Change::Battery);
     }
   }
+
   // SAFETY: the callback takes no context.
   let source = unsafe { IOPSNotificationCreateRunLoopSource(Some(changed), std::ptr::null_mut()) }?;
   // Common modes: also while the menu is open.
   // SAFETY: a static of the framework.
   CFRunLoop::main()?.add_source(Some(&source), unsafe { kCFRunLoopCommonModes });
+
   let (center, workspace) =
     (NSNotificationCenter::defaultCenter(), NSWorkspace::sharedWorkspace().notificationCenter());
   // SAFETY: statics of the frameworks.
@@ -159,6 +164,7 @@ pub fn watch(on: fn(Change)) -> Option<Watch> {
       observe(workspace, NSWorkspaceDidWakeNotification, Change::Woke),
     ]
   };
+
   Some(Watch { source, observers })
 }
 
@@ -174,6 +180,7 @@ fn observe(
       on(change);
     }
   });
+
   // SAFETY: the block runs on the main queue, where `ON` is the app's.
   let token = unsafe {
     center.addObserverForName_object_queue_usingBlock(
@@ -183,6 +190,7 @@ fn observe(
       &block,
     )
   };
+
   (center, token)
 }
 

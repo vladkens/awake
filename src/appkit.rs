@@ -34,6 +34,7 @@ pub fn symbol(symbols: &[&str]) -> TrayIcon {
     NSImage::imageWithSystemSymbolName_accessibilityDescription(&NSString::from_str(symbol), None)
   });
   let Some(image) = image else { return blank };
+
   let size = image.size();
   let (w, h) = ((size.width * 2.0).ceil() as isize, (size.height * 2.0).ceil() as isize);
   // SAFETY: no planes: the rep allocates its own buffer, 4 bytes a pixel, rows top-down.
@@ -53,6 +54,7 @@ pub fn symbol(symbols: &[&str]) -> TrayIcon {
     )
   };
   let Some(rep) = rep else { return blank };
+
   rep.setSize(size);
   NSGraphicsContext::saveGraphicsState_class();
   NSGraphicsContext::setCurrentContext(
@@ -75,12 +77,12 @@ pub fn symbol(symbols: &[&str]) -> TrayIcon {
 /// app's menu bar. For good: the notification center keeps the blocks.
 pub fn watch_menu(on: fn(bool)) {
   let center = NSNotificationCenter::defaultCenter();
-  for (name, open) in
-    // SAFETY: statics of the framework.
-    unsafe {
-      [(NSMenuDidBeginTrackingNotification, true), (NSMenuDidEndTrackingNotification, false)]
-    }
-  {
+  // SAFETY: statics of the framework.
+  let names = unsafe {
+    [(NSMenuDidBeginTrackingNotification, true), (NSMenuDidEndTrackingNotification, false)]
+  };
+
+  for (name, open) in names {
     let block = RcBlock::new(move |notification: NonNull<NSNotification>| {
       let Some(mtm) = MainThreadMarker::new() else { return };
       // SAFETY: AppKit posts it with the menu.
@@ -88,6 +90,7 @@ pub fn watch_menu(on: fn(bool)) {
       let Some(menu) = notification.object().and_then(|o| o.downcast::<NSMenu>().ok()) else {
         return;
       };
+
       // nimbo doesn't tell its tray's menu; the app has no other but its menu bar.
       if NSApplication::sharedApplication(mtm).mainMenu().is_some_and(|bar| bar == menu) {
         return;
@@ -96,6 +99,7 @@ pub fn watch_menu(on: fn(bool)) {
       OPEN.set(open.then_some(menu));
       on(open);
     });
+
     // SAFETY: the block runs where it is posted, the main thread.
     let _ =
       unsafe { center.addObserverForName_object_queue_usingBlock(Some(name), None, None, &block) };

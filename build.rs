@@ -6,6 +6,7 @@
 fn main() {
   println!("cargo:rustc-check-cfg=cfg(awake_dev)");
   println!("cargo:rerun-if-env-changed=AWAKE_FLAVOR");
+
   match std::env::var("AWAKE_FLAVOR").unwrap_or_default().as_str() {
     "" | "release" => {}
     "dev" => println!("cargo:rustc-cfg=awake_dev"),
