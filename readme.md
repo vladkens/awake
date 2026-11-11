@@ -1,32 +1,53 @@
 # awake
 
-Keeps the Mac awake from the menu bar, as KeepingYouAwake does, in pure Rust: the UI drawn by
-[nimbo](https://github.com/vladkens/nimbo), IOKit through `objc2`, no Swift, no C toolchain.
+Keeps your Mac awake from the menu bar, like [KeepingYouAwake](https://github.com/newmarcel/KeepingYouAwake), written in Rust.
 
 ## 🌟 Features
 
-A click on the cup opens the menu: Keep Awake until turned off, for 1 hour or for 3 hours, with
-the time left on top. Settings… (or opening the app again) shows a settings window with
-General, Battery and About tabs, and the Dock icon while it is open:
+- A click on the cup opens the menu and never toggles anything, so a missed click turns nothing off.
+- Keep awake until turned off, for 1 hour or for 3 hours; the menu counts down the time left.
+- Allow the display to sleep: only the system stays awake (`caffeinate -i` instead of `-d`).
+- Battery rules: turn off below a battery level (10–90 %), in Low Power Mode, or when unplugged. A session turned on by hand while a rule applies stays on until its cause clears, and the cup shows steam meanwhile.
+- Launch at login, and keep awake on launch.
+- Settings… in the menu, or open the app again, to get the settings window.
+- Idle at 0 % CPU: the battery, Low Power Mode and wake come as notifications, nothing polls.
 
-- 🖥️ Allow display to sleep: only the system stays awake (`caffeinate -i` instead of `-d`)
-- 🔋 Turn off below a battery level (a slider, 10–90 %), in Low Power Mode, or when unplugged; turned on by hand
-  while one of these applies, Awake stays on until it clears, and the cup shows steam
-- 🚀 Launch at login, keep awake on launch
+## 📥 Install
 
-Idle at 0 % CPU: the battery, Low Power Mode and wake come as notifications, nothing
-polls, and the window is built only while it is open.
+From source for now. You need macOS 13 or later (Apple Silicon or Intel) and a recent stable Rust (edition 2024).
+
+```sh
+git clone https://github.com/vladkens/awake && cd awake
+make install   # builds Awake.app into ~/Applications and starts it
+```
 
 ## 🚀 Usage
 
+Click the cup in the menu bar and pick how long to keep the Mac awake; pick the checked item again to turn it off. Launch at login works from the installed `Awake.app` only.
+
 ```sh
-make install   # ~/Applications/Awake.app, started
-make run       # Awake Dev, beside Awake with its own settings, with logs
+make run              # builds and starts Awake Dev, with logs
+pmset -g assertions   # shows what keeps the Mac awake
 ```
 
-Launch at Login works from `Awake.app` only. `pmset -g assertions` lists what keeps the Mac
-awake, Awake's assertion among them.
+Awake Dev is a separate app with its own id and settings, so it runs beside an installed Awake. `pmset -g assertions` shows which of the two holds the Mac.
+
+## 🦀 Why Rust
+
+I write Rust every day and find it easy. For a small app like this I didn't want Swift or an Xcode project. The UI is drawn by [nimbo](https://github.com/vladkens/nimbo), my own small Rust UI toolkit, and this app also helps test it. My other Mac tools in Rust: [macmon](https://github.com/vladkens/macmon) and [wavo](https://github.com/vladkens/wavo).
+
+How it compares, measured on an M5 with macOS 27.2:
+
+- Memory at idle, only the menu bar icon: Awake 13 MB, KeepingYouAwake 1.6.8 (Objective-C) 13 MB. The same.
+- Memory with the settings window open: Awake on nimbo 22 MB, the same app with an AppKit window 29 MB.
+- App size: Awake.app 6.5 MB (about 0.6 MB of it the icon), KeepingYouAwake.app 7.6 MB.
+- Stripped binary: 3.9 MiB.
+- Clean release build: about 12 s.
+
+## 🤝 Contributing
+
+Pull requests are welcome, and so are your agents: point them at [agents.md](agents.md).
 
 ## 📝 License
 
-[MIT](LICENSE)
+Distributed under the [MIT License](LICENSE).
