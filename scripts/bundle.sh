@@ -1,7 +1,8 @@
 #!/bin/sh
 # Awake.app from the release build: LSUIElement (no Dock icon), signed ad hoc, so that
 # SMAppService can register it to launch at login. AWAKE_FLAVOR=dev: Awake Dev.app, an app of its
-# own beside Awake (main.rs's DEV), with Awake's icon in orange (scripts/dev-icon.py).
+# own beside Awake (main.rs's DEV), its icon grey with a DEV badge when `dev-icon` (the author's
+# dotfiles) is on PATH, else Awake's own.
 #   [AWAKE_FLAVOR=dev] scripts/bundle.sh [dest dir, default target/release]
 set -eu
 cd "$(dirname "$0")/.."
@@ -9,8 +10,11 @@ cargo build --release --locked
 dest="${1:-target/release}"
 name=Awake id=me.vladkens.awake icon=assets/icon.png
 if [ "${AWAKE_FLAVOR:-}" = dev ]; then
-  name="Awake Dev" id=me.vladkens.awake-dev icon=target/dev-icon.png
-  python3 scripts/dev-icon.py assets/icon.png "$icon"
+  name="Awake Dev" id=me.vladkens.awake-dev
+  if command -v dev-icon >/dev/null; then
+    icon=target/dev-icon.png
+    dev-icon assets/icon.png "$icon"
+  fi
 fi
 app="$dest/$name.app"
 version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"

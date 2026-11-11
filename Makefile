@@ -30,8 +30,8 @@ clean:
 .PHONY: run bundle install
 
 # FLAVOR=dev: Awake Dev, `make run`'s, an app of its own beside the installed Awake: its bundle id
-# me.vladkens.awake-dev, so its own settings and login item, and an orange icon. The binary takes
-# it from AWAKE_FLAVOR (build.rs), the bundle from scripts/bundle.sh.
+# me.vladkens.awake-dev, so its own settings and login item, and a grey icon with a DEV badge. The
+# binary takes it from AWAKE_FLAVOR (build.rs), the bundle from scripts/bundle.sh.
 run: # Awake Dev from its bundle, logging: make run RUST_LOG=debug
 	-pkill -x "Awake Dev"
 	$(MAKE) bundle FLAVOR=dev
