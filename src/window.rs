@@ -7,8 +7,8 @@
 
 use nimbo::autostart::State as Login;
 use nimbo::{
-  Align, App, Config, Font, FormRow, FormStyle, Icon, Png, Proxy, Section, Style, TabItem,
-  TextStyle, Ui, grow, px,
+  Align, App, Config, ControlSize, Font, FormRow, FormStyle, Icon, Png, Proxy, Section, Style,
+  TabItem, TextStyle, Ui, grow, px,
 };
 
 use crate::settings::{FLOOR_MAX, FLOOR_MIN, FLOOR_STEP, Settings};
@@ -16,13 +16,26 @@ use crate::settings::{FLOOR_MAX, FLOOR_MIN, FLOOR_STEP, Settings};
 const WIDTH: f32 = 480.0;
 /// The About tab's height, the tallest, as nimbo lays it out: switching tabs neither resizes
 /// nor moves the window.
-const HEIGHT: f32 = 306.0;
+const HEIGHT: f32 = 486.0;
 const ICON: Png = Png::new(include_bytes!("../assets/icon.png")).side(192);
 /// A battery three quarters full, as `battery.75percent`, in nimbo's 24-unit box.
 const BATTERY: Icon = Icon::new(concat!(
   "M5 7h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z",
   "M21 10.5v3M6.5 10.5v3M9.5 10.5v3M12.5 10.5v3"
 ));
+
+const SOURCE: &str = env!("CARGO_PKG_REPOSITORY");
+const COFFEE: &str = "https://buymeacoffee.com/vladkens";
+
+/// `(name, what, url)`.
+const ACKS: [(&str, &str, &str); 2] = [
+  ("nimbo", "The UI toolkit Awake is drawn with", "https://github.com/vladkens/nimbo"),
+  (
+    "KeepingYouAwake",
+    "The app that inspired Awake",
+    "https://github.com/newmarcel/KeepingYouAwake",
+  ),
+];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Page {
@@ -133,7 +146,7 @@ impl Form {
     });
   }
 
-  /// The app's icon, name and lines, centred.
+  /// The app's icon, name and lines, centred, its links and its acknowledgements.
   fn about(&mut self, ui: &mut Ui, fs: &FormStyle) {
     let t = ui.theme();
     let column = Style::new().w(grow()).gap(4.0).align(Align::Center, Align::Start);
@@ -143,8 +156,40 @@ impl Form {
       ui.text(crate::INFO.name, t.label().font(Font { size: 17.0, ..t.bold }));
       ui.text(format!("Version {}", env!("CARGO_PKG_VERSION")), fs.caption);
       ui.text("Keeps your Mac awake from the menu bar.", fs.caption);
-      ui.text("© 2026 vladkens · MIT License", fs.caption);
+      ui.el(Style::new().h(px(6.0)));
+      ui.row(Style::new().gap(8.0), |ui| {
+        if ui.id(("link", "source")).button("View on GitHub").clicked {
+          open(SOURCE);
+        }
+
+        if ui.id(("link", "coffee")).button("Buy Me a Coffee").clicked {
+          open(COFFEE);
+        }
+      });
     });
+
+    // A row's controls go on its name's line: the ↗ is centred in the whole row instead.
+    let row_h = 2.0 * fs.pad_y + ui.line_height(fs.label) + 2.0 + ui.line_height(fs.caption);
+    ui.form_section(fs, "Acknowledgements", |ui| {
+      for (name, what, url) in ACKS {
+        ui.form_row(fs, FormRow::new(name).caption(what), |ui| {
+          ui.col(Style::new().h(px(row_h)).align(Align::Center, Align::Center), |ui| {
+            let tip = url.trim_start_matches("https://");
+            let button = ui.id(("link", name)).control_size(ControlSize::Large).help(tip);
+            if button.icon_button(Icon::EXTERNAL).clicked {
+              open(url);
+            }
+          });
+        });
+      }
+    });
+  }
+}
+
+/// `url` in the browser.
+fn open(url: &str) {
+  if let Err(e) = nimbo::open::url(url) {
+    tracing::warn!("open {url}: {e}");
   }
 }
 
