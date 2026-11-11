@@ -25,3 +25,22 @@ update:
 
 clean:
 	cargo clean
+
+# awake
+.PHONY: run bundle install
+
+# FLAVOR=dev: Awake Dev, `make run`'s, an app of its own beside the installed Awake: its bundle id
+# me.vladkens.awake-dev, so its own settings and login item, and an orange icon. The binary takes
+# it from AWAKE_FLAVOR (build.rs), the bundle from scripts/bundle.sh.
+run: # Awake Dev from its bundle, logging: make run RUST_LOG=debug
+	-pkill -x "Awake Dev"
+	$(MAKE) bundle FLAVOR=dev
+	RUST_LOG=$${RUST_LOG:-info} "target/release/Awake Dev.app/Contents/MacOS/Awake Dev"
+
+bundle: # target/release/Awake.app, signed ad hoc; FLAVOR=dev: Awake Dev.app
+	AWAKE_FLAVOR=$(FLAVOR) scripts/bundle.sh
+
+install: # ~/Applications/Awake.app, started
+	-pkill -x Awake
+	scripts/bundle.sh ~/Applications
+	open ~/Applications/Awake.app
