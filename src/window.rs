@@ -1,7 +1,7 @@
 // Copyright (c) vladkens | MIT License | https://github.com/vladkens/awake
 //! The settings window, drawn by nimbo in the look of System Settings: toolbar tabs over grey
-//! plates of rows, each a setting with a grey note under its name and a switch, and the battery
-//! floor's slider; one height for every tab, the tallest's. It shows what the app gives it
+//! plates of rows, each a setting with a switch, some with a grey note under its name, and the
+//! battery floor's slider; one height for every tab, the tallest's. It shows what the app gives it
 //! ([`Shown`]) and hands what the user changes to the app from the loop ([`FormEvent`]), never
 //! while it draws. The app opens it when asked and drops it when closed.
 
@@ -14,9 +14,9 @@ use nimbo::{
 use crate::settings::{FLOOR_MAX, FLOOR_MIN, FLOOR_STEP, Settings};
 
 const WIDTH: f32 = 480.0;
-/// The Battery tab's height, the tallest, as nimbo lays it out: switching tabs neither resizes
+/// The About tab's height, the tallest, as nimbo lays it out: switching tabs neither resizes
 /// nor moves the window.
-const HEIGHT: f32 = 466.0;
+const HEIGHT: f32 = 306.0;
 const ICON: Png = Png::new(include_bytes!("../assets/icon.png")).side(192);
 /// A battery three quarters full, as `battery.75percent`, in nimbo's 24-unit box.
 const BATTERY: Icon = Icon::new(concat!(
@@ -38,13 +38,9 @@ const PAGES: [TabItem<Page>; 3] = [
 ];
 
 /// The texts that name the app say `{app}`, [`named`]: Awake Dev's own in its flavor.
-const LOGIN: &str = "Opens {app} when you log in to your Mac.";
-const ON_LAUNCH: &str = "Starts keeping the Mac awake as soon as {app} opens.";
-const DISPLAY: &str = "Only the Mac stays awake; the screen turns off as set in System Settings.";
-const FLOOR: &str =
-  "Only on battery. Turned on by hand below this level, {app} stays on until you plug in.";
-const LOW_POWER: &str = "Low Power Mode is in System Settings → Battery.";
-const UNPLUGGED: &str = "{app} keeps the Mac awake only while it runs on its adapter.";
+const ON_LAUNCH: &str = "Keeps the Mac awake as soon as {app} starts.";
+const DISPLAY: &str = "The screen turns off as usual; the Mac keeps working.";
+const FLOOR: &str = "Only on battery.";
 const APPROVE: &str = "Allow {app} in System Settings → Login Items";
 const BUNDLE: &str = "Only Awake.app can launch at login: make install";
 const NO_BATTERY: &str = "This Mac has no battery";
@@ -92,8 +88,7 @@ impl Form {
         Err(_) => (false, Some(BUNDLE.into())),
       };
 
-      let caption = named(LOGIN);
-      let row = FormRow::new(label("Launch at login", tip.as_deref())).caption(&caption);
+      let row = FormRow::new(label("Launch at login", tip.as_deref()));
       ui.disabled(self.shown.login.is_err()).form_row(fs, row, |ui| {
         if ui.toggle(&mut login, "").changed {
           self.send(FormEvent::Login(login));
@@ -102,10 +97,10 @@ impl Form {
 
       let s = &mut self.shown.settings;
       let caption = named(ON_LAUNCH);
-      let row = FormRow::new("Keep awake on launch").caption(&caption);
+      let row = FormRow::new("Turn on at launch").caption(&caption);
       ui.form_row(fs, row, |ui| ui.toggle(&mut s.on_launch, ""));
 
-      let row = FormRow::new("Allow display to sleep").caption(DISPLAY);
+      let row = FormRow::new("Let the display sleep").caption(DISPLAY);
       ui.form_row(fs, row, |ui| ui.toggle(&mut s.display_sleeps, ""));
     });
   }
@@ -114,10 +109,9 @@ impl Form {
     let s = &mut self.shown.settings;
     let tip = (!self.shown.battery).then_some(NO_BATTERY);
 
-    ui.form_section(fs, "Battery Level", |ui| {
-      let name = format!("Turn off when battery is below {}%", s.floor);
-      let caption = named(FLOOR);
-      let row = FormRow::new(label(&name, tip)).caption(&caption);
+    ui.form_section(fs, Section::default(), |ui| {
+      let name = format!("Turn off below {}%", s.floor);
+      let row = FormRow::new(label(&name, tip)).caption(FLOOR);
       ui.disabled(tip.is_some()).form_row(fs, row, |ui| ui.toggle(&mut s.floor_on, ""));
 
       let mut floor = s.floor as f32;
@@ -130,16 +124,11 @@ impl Form {
 
         ui.text(format!("{FLOOR_MAX}%"), t);
       });
-    });
 
-    ui.form_section(fs, "Low Power Mode", |ui| {
-      let row = FormRow::new("Turn off in Low Power Mode").caption(LOW_POWER);
+      let row = FormRow::new("Turn off in Low Power Mode");
       ui.form_row(fs, row, |ui| ui.toggle(&mut s.off_in_low_power, ""));
-    });
 
-    ui.form_section(fs, "Power Adapter", |ui| {
-      let caption = named(UNPLUGGED);
-      let row = FormRow::new(label("Turn off when unplugged", tip)).caption(&caption);
+      let row = FormRow::new(label("Turn off when unplugged", tip));
       ui.disabled(tip.is_some()).form_row(fs, row, |ui| ui.toggle(&mut s.off_unplugged, ""));
     });
   }
