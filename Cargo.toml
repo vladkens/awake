@@ -25,6 +25,7 @@ objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std"
 objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFArray", "CFRunLoop", "CFString"] }
 objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "block2", "NSDictionary", "NSGeometry", "NSNotification", "NSObject", "NSOperation", "NSProcessInfo", "NSString", "NSUserDefaults", "NSValue", "NSDistributedNotificationCenter"] }
 objc2-io-kit = { version = "0.3.2", default-features = false, features = ["std", "ps", "pwr_mgt"] }
+shipo = { version = "0.2.1", default-features = false }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "ansi", "env-filter"] }
 

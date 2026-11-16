@@ -1,11 +1,11 @@
 // Copyright (c) vladkens | MIT License | https://github.com/vladkens/awake
 //! The settings window, drawn by nimbo in the look of System Settings: toolbar tabs over pages of
 //! grey plates. General has the rows of startup, the screen and the menu bar; Battery the rules
-//! that turn it off, the floor's slider under its row; About the app, its links and thanks. A row
-//! has a switch and a grey line under its name where the name doesn't say it all (an ⓘ beside the
-//! name says why a row is off). The window is as high as the page shown. It shows what the app
-//! gives it ([`Shown`]) and hands what the user changes to the app from the loop ([`FormEvent`]),
-//! never while it draws. The app opens it when asked and drops it when closed.
+//! that turn it off, the floor's slider under its row; About the app, its updates, its links and
+//! thanks. A row has a switch and a grey line under its name where the name doesn't say it all (an
+//! ⓘ beside the name says why a row is off). The window is as high as the page shown. It shows what
+//! the app gives it ([`Shown`]) and hands what the user changes to the app from the loop
+//! ([`FormEvent`]), never while it draws. The app opens it when asked and drops it when closed.
 
 use nimbo::autostart::State as Login;
 use nimbo::{
@@ -14,6 +14,7 @@ use nimbo::{
 };
 
 use crate::settings::{FLOOR_MAX, FLOOR_MIN, FLOOR_STEP, Settings};
+use crate::updater::{self, State as Update};
 
 const WIDTH: f32 = 480.0;
 /// The slider's middle tick, labelled as its ends.
@@ -100,6 +101,8 @@ pub struct Shown {
   pub battery: bool,
   /// Launch at login; `Err` where it can't (a bare executable).
   pub login: Result<Login, String>,
+  /// The updater's state, `None` where the app can't update.
+  pub update: Option<Update>,
 }
 
 /// What the user changed in the window.
@@ -107,6 +110,10 @@ pub struct Shown {
 pub enum FormEvent {
   Changed(Settings),
   Login(bool),
+  /// Check for Updates.
+  Check,
+  /// Install the update on offer, or try a failed one again.
+  Install,
 }
 
 pub struct Form {
@@ -208,6 +215,10 @@ impl Form {
       ui.text(concat!("Version ", env!("CARGO_PKG_VERSION")), fs.caption);
       ui.text("Keeps your Mac awake from the menu bar.", fs.caption);
       ui.el(Style::new().h(px(6.0)));
+      if let Some(update) = &self.shown.update {
+        self.update(ui, fs, update.clone());
+      }
+
       ui.row(Style::new().gap(8.0), |ui| {
         if ui.id(("link", "source")).button("View on GitHub").clicked {
           open(SOURCE);
@@ -234,6 +245,40 @@ impl Form {
         });
       }
     });
+  }
+
+  /// The updater's line and its button, as Sparkle's About: Check for Updates, what the check
+  /// found, the download.
+  fn update(&self, ui: &mut Ui, fs: &FormStyle, update: Update) {
+    let name = crate::INFO.name;
+    let check = Some(("Check for Updates", FormEvent::Check));
+    let (text, button) = match update {
+      Update::Idle => (None, check),
+      Update::Checking => (Some("Checking for updates…".into()), None),
+      Update::UpToDate => (Some(format!("{name} is up to date.")), check),
+      Update::Available(r) => {
+        let text = format!("{name} {} is available.", updater::shown(&r.version));
+        (Some(text), Some(("Install and Relaunch", FormEvent::Install)))
+      }
+      Update::Downloading(_, done) => (Some(format!("Downloading the update… {done}%")), None),
+      Update::Failed(r, why) => {
+        let again = if r.is_some() { FormEvent::Install } else { FormEvent::Check };
+        let what = if r.is_some() { "The update failed" } else { "Couldn't check for updates" };
+        (Some(format!("{what}: {why}")), Some(("Try Again", again)))
+      }
+    };
+
+    if let Some(text) = text {
+      ui.text(&text, fs.caption);
+    }
+
+    if let Some((label, event)) = button
+      && ui.id("update").button(label).clicked
+    {
+      self.send(event);
+    }
+
+    ui.el(Style::new().h(px(6.0)));
   }
 }
 
