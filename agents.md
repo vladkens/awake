@@ -48,5 +48,9 @@ rustdoc (`src/main.rs` first), dependencies `Cargo.toml`, checks the `Makefile`.
   fix.
 - Ask the person only when what the app does must change, a heavy dependency is needed, or the
   request is ambiguous. Otherwise decide and say so in your report.
+- Release: a PR titled `release: vX.Y.Z`, `Cargo.toml`'s version, with its `changelog.md`
+  section. Merged, CI builds the DMGs (`make dist`, `make pack`), publishes them with
+  `update.txt` and bumps the cask in vladkens/homebrew-tap. `make pack` signs: CI only, never on
+  the person's Mac.
 - Keep docs to `readme.md` (users), the rustdoc and `agents.md`. No progress journals, run logs or
   disclaimer paragraphs.
