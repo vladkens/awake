@@ -164,8 +164,6 @@ impl State {
         Ok(_) => {}
         Err(e) => tracing::warn!("launch at login: {e}"),
       },
-      FormEvent::Awake(true) => self.start(None, true),
-      FormEvent::Awake(false) => self.stop(None),
       FormEvent::Changed(settings) => {
         let display = settings.display_sleeps != self.settings.display_sleeps;
         self.settings = settings;
@@ -272,11 +270,11 @@ impl State {
     }
   }
 
-  /// The time left shown next changes: in the open menu or window on the second, beside the cup
+  /// The time left shown next changes: in the open menu on the second, beside the cup
   /// on the minute. The tick shows it, and arms the next.
   fn countdown(&mut self, now: SystemTime) {
     self.tick += 1;
-    let unit = match (self.menu_open || self.window.is_some(), self.settings.show_left) {
+    let unit = match (self.menu_open, self.settings.show_left) {
       (true, _) => Duration::from_secs(1),
       (false, true) => minutes(1),
       (false, false) => return,
@@ -320,29 +318,8 @@ impl State {
 
   /// What the window shows besides the settings, read now.
   fn shown(&self) -> Shown {
-    let status = match (&self.session, &self.stopped) {
-      (Some(session), _) => {
-        let mut status = match session.until {
-          Some(until) => format!("Until {}", appkit::clock(until)),
-          None => "Until turned off".into(),
-        };
-
-        if let Some(why) = &session.forced {
-          status += &format!(", despite {why}");
-        }
-
-        status
-      }
-      (None, Some(why)) => format!("Turned off · {why}"),
-      (None, None) => "Off".into(),
-    };
-
-    let until = self.session.as_ref().and_then(|s| s.until);
     Shown {
       settings: self.settings,
-      awake: self.session.is_some(),
-      status,
-      left: until.map(|until| left(until, SystemTime::now())),
       battery: power::battery().is_some(),
       login: autostart::state(&INFO),
     }

@@ -5,7 +5,7 @@ Keeps your Mac awake from the menu bar, like [KeepingYouAwake](https://github.co
 ## 🌟 Features
 
 - A click on the cup opens the menu and never toggles anything, so a missed click turns nothing off.
-- Keep awake until turned off, or for 15 minutes to 8 hours; the menu and the settings window count down the time left, and the menu bar can show its minutes beside the cup.
+- Keep awake until turned off, or for 15 minutes to 8 hours; the menu counts down the time left, and the menu bar can show its minutes beside the cup.
 - Let the display sleep: only the system stays awake (`caffeinate -i` instead of `-d`).
 - Turn off when the screen locks.
 - Battery rules: turn off below a battery level (10–90 %), in Low Power Mode, or when unplugged. A session turned on by hand while a rule applies stays on until its cause clears.
@@ -24,7 +24,7 @@ make run   # builds and starts Awake Dev
 
 ## 🚀 Usage
 
-Click the cup in the menu bar and pick Keep Awake Indefinitely, or a length under Keep Awake For; Turn Off in the same place ends it. The switch at the top of the settings window's General tab does the same.
+Click the cup in the menu bar and pick Keep Awake Indefinitely, or a length under Keep Awake For; Turn Off in the same place ends it.
 
 ```sh
 pmset -g assertions   # shows what keeps the Mac awake

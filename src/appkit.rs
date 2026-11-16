@@ -1,13 +1,11 @@
 // Copyright (c) vladkens | MIT License | https://github.com/vladkens/awake
 //! AppKit for what nimbo has no API for: an SF Symbol as the status item's icon (nimbo's
-//! [`TrayIcon`] takes pixels or path data) and the time of day as the user's clock shows it.
-
-use std::time::{SystemTime, UNIX_EPOCH};
+//! [`TrayIcon`] takes pixels or path data).
 
 use nimbo::tray::TrayIcon;
 use objc2::AllocAnyThread;
 use objc2_app_kit::{NSBitmapImageRep, NSDeviceRGBColorSpace, NSGraphicsContext, NSImage};
-use objc2_foundation::{NSDate, NSDateFormatter, NSDateFormatterStyle, NSRect, NSString};
+use objc2_foundation::{NSRect, NSString};
 
 /// The first of the SF Symbols `symbols` the system has, drawn at twice its size in points: a
 /// template of its alpha, as the menu bar tints it. Blank when it has none.
@@ -54,13 +52,4 @@ pub fn symbol(symbols: &[&str]) -> TrayIcon {
   // SAFETY: the rep's buffer, `w * 4` bytes by `h` rows, alive while `rep` is.
   let px = unsafe { std::slice::from_raw_parts(data, (w * h * 4) as usize) }.to_vec();
   TrayIcon::Rgba { w: w as u32, h: h as u32, scale: 2.0, px }
-}
-
-/// `t`'s time of day as the user's clock shows it: `18:42`, `6:42 PM`.
-pub fn clock(t: SystemTime) -> String {
-  let secs = t.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs_f64();
-  let format = NSDateFormatter::new();
-  format.setDateStyle(NSDateFormatterStyle::NoStyle);
-  format.setTimeStyle(NSDateFormatterStyle::ShortStyle);
-  format.stringFromDate(&NSDate::dateWithTimeIntervalSince1970(secs)).to_string()
 }
