@@ -91,7 +91,7 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 [[package]]
 name = "nimbo"
 version = "0.0.1"
-source = "git+https://github.com/vladkens/nimbo?rev=e59fb2c#e59fb2c0ba317e64573ba11e61c332b2eaeb3b12"
+source = "git+https://github.com/vladkens/nimbo?rev=d6104fd#d6104fde66df1b51341864e8cb2f7a0bb6ce5221"
 dependencies = [
  "block2",
  "dispatch2",
@@ -102,6 +102,7 @@ dependencies = [
  "objc2-core-graphics",
  "objc2-core-text",
  "objc2-foundation",
+ "objc2-image-io",
  "objc2-quartz-core",
  "objc2-service-management",
  "windows-sys",
@@ -191,6 +192,16 @@ dependencies = [
  "block2",
  "objc2",
  "objc2-core-foundation",
+]
+
+[[package]]
+name = "objc2-image-io"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32b0446e98cf4a784cc7a0177715ff317eeaa8463841c616cfc78aa4f953c4ea"
+dependencies = [
+ "objc2-core-foundation",
+ "objc2-core-graphics",
 ]
 
 [[package]]

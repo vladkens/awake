@@ -1,15 +1,10 @@
 // Copyright (c) vladkens | MIT License | https://github.com/vladkens/awake
 //! Awake: keeps the Mac awake from the menu bar, as KeepingYouAwake does. A click on the cup opens
-//! the menu: on until turned off or for an hour or three. The settings window (Settings… in the
+//! the menu: on until turned off or for one of [`LENGTHS`]. The settings window (Settings… in the
 //! menu, or the app opened again) has the rest: launch at login, on at launch, the display left to
-//! sleep, and the battery's rules, which a session turned on by hand outlives. The status item,
-//! the menu and the window are nimbo's; what nimbo lacks is AppKit's, in `appkit.rs`.
+//! sleep, and the battery's rules, which a session turned on by hand outlives. The status item, the
+//! menu and the window are nimbo's; what nimbo lacks is AppKit's, in `appkit.rs`.
 //!
-//! Unlike the AppKit version: the settings window has nimbo's System Settings look (switches,
-//! notes under the names, why a row is off on an ⓘ beside it) and a fixed title, the app's name;
-//! the battery slider has no tick marks, and keys and VoiceOver can't move it (nimbo's arrows step
-//! a twentieth of the range, which rounds back to the same 10 %); while the window is open the app
-//! menu has only Close Window and Quit, no About or Hide.
 //!   make run
 
 mod appkit;
@@ -35,21 +30,20 @@ const RELEASE: AppInfo =
 /// login item and instance, all by its id.
 const DEV: AppInfo =
   AppInfo { id: "me.vladkens.awake-dev", name: "Awake Dev", presence: Presence::Accessory };
-const HOUR: Duration = Duration::from_secs(60 * 60);
-/// The menu's sessions: the item's title and how long.
-const MODES: [(&str, Option<Duration>); 3] = [
-  ("Keep Awake", None),
-  ("For 1 Hour", Some(HOUR)),
-  ("For 3 Hours", Some(Duration::from_secs(3 * 60 * 60))),
-];
+const HOUR: Duration = minutes(60);
+/// The timed sessions of the Keep Awake For submenu.
+const LENGTHS: [Duration; 6] =
+  [minutes(15), minutes(30), HOUR, minutes(2 * 60), minutes(4 * 60), minutes(8 * 60)];
 
 /// What the menu's items do.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Action {
   /// The status line: nothing.
   Status,
-  /// One of [`MODES`].
-  Mode(usize),
+  /// Keep Awake while off, Turn Off while on: the item's title changes in the open menu.
+  Toggle,
+  /// One of [`LENGTHS`], again from its start when it runs.
+  For(usize),
   Settings,
   Quit,
 }
@@ -57,8 +51,8 @@ enum Action {
 /// Awake now.
 struct Session {
   _assertion: Assertion,
-  /// The index in [`MODES`] of the item that started it: the checkmark's.
-  mode: usize,
+  /// How long it was started for: the submenu's checkmark.
+  length: Option<Duration>,
   /// When it ends by itself.
   until: Option<SystemTime>,
   /// Turned on by hand while a rule said no (why): the rules wait until that clears.
@@ -76,9 +70,9 @@ struct State {
   stopped: Option<String>,
   /// The session's timer: one that fires for an earlier session finds another number.
   timer: u64,
-  /// The menu is open: its countdown ticks.
+  /// The menu is open: its countdown ticks each second.
   menu_open: bool,
-  /// The countdown's tick: one of an earlier opening finds another number.
+  /// The countdown's tick: one armed before the last [`State::show`] finds another number.
   tick: u64,
   /// The icon's symbol: drawn again only when it changes.
   icon: &'static str,
@@ -107,19 +101,36 @@ fn early(length: Duration) -> Duration {
   if length > Duration::from_secs(1) { length * 10 / 11 } else { length }
 }
 
-fn menu(status: &str, mode: Option<usize>) -> Menu<Action> {
-  let mut items = vec![Item::full(Action::Status, status).enabled(false), Item::Divider];
-  for (i, (title, _)) in MODES.iter().enumerate() {
-    items.push(Item::toggle(Action::Mode(i), title, mode == Some(i)));
-  }
-
-  items.extend([
+/// The menu while on or off; `length` is the timed session's.
+fn menu(status: &str, on: bool, length: Option<Duration>) -> Menu<Action> {
+  let lengths = LENGTHS.iter().enumerate();
+  let lengths = lengths.map(|(i, &l)| Item::toggle(Action::For(i), &title(l), length == Some(l)));
+  Menu::new(vec![
+    Item::full(Action::Status, status).enabled(false),
+    Item::Divider,
+    Item::button(Action::Toggle, toggle(on)),
+    Item::submenu("Keep Awake For", Menu::new(lengths.collect())),
     Item::Divider,
     Item::button(Action::Settings, "Settings…").key(Shortcut::char(',').cmd()),
     Item::button(Action::Quit, &format!("Quit {}", INFO.name)).key(Shortcut::char('q').cmd()),
-  ]);
+  ])
+}
 
-  Menu::new(items)
+const fn minutes(m: u64) -> Duration {
+  Duration::from_secs(m * 60)
+}
+
+fn toggle(on: bool) -> &'static str {
+  if on { "Turn Off" } else { "Keep Awake Indefinitely" }
+}
+
+/// A length as the submenu names it: `15 Minutes`, `1 Hour`, `8 Hours`.
+fn title(length: Duration) -> String {
+  match (length.as_secs() / 3600, length.as_secs() / 60) {
+    (0, m) => format!("{m} Minutes"),
+    (1, _) => "1 Hour".into(),
+    (h, _) => format!("{h} Hours"),
+  }
 }
 
 // MARK: State
@@ -130,19 +141,16 @@ impl State {
       Action::Status => {}
       Action::Settings => self.open_settings(main),
       Action::Quit => main.quit(),
-      // The item checked turns it off; another one starts its own session.
-      Action::Mode(mode) if self.session.as_ref().is_some_and(|s| s.mode == mode) => {
-        self.stop(None)
-      }
-      Action::Mode(mode) => self.start(mode, true),
+      Action::Toggle if self.session.is_some() => self.stop(None),
+      Action::Toggle => self.start(None, true),
+      Action::For(i) => self.start(Some(LENGTHS[i]), true),
     }
   }
 
-  /// Only the countdown starts or stops: the menu is built as it opens and once it closes.
+  /// Only the countdown's pace changes: the menu is built as it opens and once it closes.
   fn on_menu(&mut self, open: bool) {
     self.menu_open = open;
-    self.tick += 1;
-    self.countdown();
+    self.countdown(SystemTime::now());
   }
 
   fn on_form(&mut self, event: FormEvent) {
@@ -152,6 +160,8 @@ impl State {
         Ok(_) => {}
         Err(e) => tracing::warn!("launch at login: {e}"),
       },
+      FormEvent::Awake(true) => self.start(None, true),
+      FormEvent::Awake(false) => self.stop(None),
       FormEvent::Changed(settings) => {
         let display = settings.display_sleeps != self.settings.display_sleeps;
         self.settings = settings;
@@ -199,9 +209,9 @@ impl State {
     }
   }
 
-  /// A session of `MODES[mode]`. By hand it starts whatever the rules say, and they wait until
-  /// what they object to clears; at launch they decide.
-  fn start(&mut self, mode: usize, by_hand: bool) {
+  /// A session of `length`, or until turned off. By hand it starts whatever the rules say, and they
+  /// wait until what they object to clears; at launch they decide.
+  fn start(&mut self, length: Option<Duration>, by_hand: bool) {
     let why = self.why_not();
     if why.is_some() && !by_hand {
       self.stop(why);
@@ -214,9 +224,8 @@ impl State {
     };
 
     self.timer += 1;
-    let length = MODES[mode].1;
     let until = length.map(|length| SystemTime::now() + length);
-    self.session = Some(Session { _assertion: assertion, mode, until, forced: why });
+    self.session = Some(Session { _assertion: assertion, length, until, forced: why });
     self.stopped = None;
 
     if let Some(length) = length {
@@ -255,14 +264,15 @@ impl State {
     }
   }
 
-  /// While the menu is open, the time left in it ticks each second, on the second's change.
-  fn countdown(&mut self) {
+  /// While the menu is open, the time left in it ticks each second, on the second's change. The
+  /// tick shows it, and arms the next.
+  fn countdown(&mut self, now: SystemTime) {
+    self.tick += 1;
     let until = self.session.as_ref().and_then(|s| s.until);
     let (true, Some(until)) = (self.menu_open, until) else { return };
 
-    self.tick += 1;
     let tick = self.tick;
-    let left = until.duration_since(SystemTime::now()).unwrap_or_default();
+    let left = until.duration_since(now).unwrap_or_default();
     let next = match left.subsec_nanos() {
       0 => Duration::from_secs(1),
       nanos => Duration::from_nanos(nanos.into()),
@@ -272,7 +282,6 @@ impl State {
       with_state(|state| {
         if state.tick == tick {
           state.show();
-          state.countdown();
         }
       });
     });
@@ -296,8 +305,27 @@ impl State {
 
   /// What the window shows besides the settings, read now.
   fn shown(&self) -> Shown {
+    let status = match (&self.session, &self.stopped) {
+      (Some(session), _) => {
+        let mut status = match session.until {
+          Some(until) => format!("Until {}", appkit::clock(until)),
+          None => "Until turned off".into(),
+        };
+
+        if let Some(why) = &session.forced {
+          status += &format!(", despite {why}");
+        }
+
+        status
+      }
+      (None, Some(why)) => format!("Turned off · {why}"),
+      (None, None) => "Off".into(),
+    };
+
     Shown {
       settings: self.settings,
+      awake: self.session.is_some(),
+      status,
       battery: power::battery().is_some(),
       login: autostart::state(&INFO),
     }
@@ -307,44 +335,44 @@ impl State {
     let now = SystemTime::now();
     let status = match (&self.session, &self.stopped) {
       (Some(session), _) => {
-        let base = match session.until {
-          Some(until) => format!("Awake: {} left", left(until, now)),
-          None => "Awake".into(),
-        };
-
-        match &session.forced {
-          Some(why) => format!("{base}, despite {why}"),
-          None => base,
+        let mut status = String::from("Keeping awake");
+        if let Some(why) = &session.forced {
+          status += &format!(" despite {why}");
         }
+
+        if let Some(until) = session.until {
+          status += &format!(" · {} left", left(until, now));
+        }
+
+        status
       }
-      (None, Some(why)) => format!("Off: {why}"),
+      (None, Some(why)) => format!("Turned off · {why}"),
       (None, None) => "Off".into(),
     };
 
-    let forced = self.session.as_ref().is_some_and(|s| s.forced.is_some());
-    let (symbols, description): (&[&'static str], _) = match &self.session {
-      // Steam: on against a rule; the cup alone where the system lacks the symbol (macOS 13).
-      Some(_) if forced => (&["cup.and.heat.waves.fill", "cup.and.saucer.fill"], status.clone()),
-      Some(_) => (&["cup.and.saucer.fill"], INFO.name.into()),
-      None => (&["cup.and.saucer"], format!("{}: off", INFO.name)),
+    let (icon, description) = match &self.session {
+      Some(_) => ("cup.and.saucer.fill", "keeping awake"),
+      None => ("cup.and.saucer", "off"),
     };
 
-    if self.icon != symbols[0] {
-      self.icon = symbols[0];
-      self.tray.set_icon(appkit::symbol(symbols));
+    if self.icon != icon {
+      self.icon = icon;
+      self.tray.set_icon(appkit::symbol(&[icon]));
     }
 
-    self.tray.set_tooltip(&description);
-    // An open menu shows the new one once it closes: its status line and checkmarks change
-    // meanwhile.
-    let mode = self.session.as_ref().map(|s| s.mode);
-    self.tray.set_menu(&menu(&status, mode));
-    appkit::show_open(&status, (0..MODES.len()).map(|i| mode == Some(i)));
+    self.tray.set_tooltip(&format!("{}: {description}", INFO.name));
+    // An open menu shows the new one once it closes: its status line, toggle and checkmarks
+    // change meanwhile.
+    let (on, length) = (self.session.is_some(), self.session.as_ref().and_then(|s| s.length));
+    self.tray.set_menu(&menu(&status, on, length));
+    appkit::show_open(&status, toggle(on), LENGTHS.iter().map(|&l| length == Some(l)));
 
     if let Some(window) = &self.window {
       let shown = self.shown();
       window.with(|form| form.shown = shown);
     }
+
+    self.countdown(now);
   }
 }
 
@@ -359,10 +387,10 @@ fn rule(settings: &Settings, low_power: bool, battery: Option<Battery>) -> Optio
 
   let battery = battery.filter(|b| b.draining)?;
   if settings.floor_on && battery.percent <= settings.floor {
-    return Some(format!("battery at {}%", battery.percent));
+    return Some(format!("low battery ({}%)", battery.percent));
   }
 
-  settings.off_unplugged.then(|| "running on battery".into())
+  settings.off_unplugged.then(|| "battery power".into())
 }
 
 /// The time from `now` until `until` as a clock counts down: `59:42`, `2:59:42`; whole seconds,
@@ -417,7 +445,7 @@ fn start(main: &mut Main) {
   with_state(|state| {
     state._watch = watch;
     if state.settings.on_launch {
-      state.start(0, false);
+      state.start(None, false);
     }
 
     state.show();
@@ -454,6 +482,13 @@ mod tests {
   }
 
   #[test]
+  fn lengths_read_as_the_menu_names_them() {
+    let titles: Vec<_> = LENGTHS.into_iter().map(title).collect();
+    let want = ["15 Minutes", "30 Minutes", "1 Hour", "2 Hours", "4 Hours", "8 Hours"];
+    assert_eq!(titles, want);
+  }
+
+  #[test]
   fn low_power_mode_ends_it_only_when_asked() {
     let asked = Settings { off_in_low_power: true, ..Settings::default() };
     assert_eq!(rule(&asked, true, None).as_deref(), Some("Low Power Mode"));
@@ -464,7 +499,7 @@ mod tests {
   #[test]
   fn the_floor_ends_it_on_battery_only() {
     let floor = Settings { floor_on: true, floor: 20, ..Settings::default() };
-    assert_eq!(rule(&floor, false, battery(20, true)).as_deref(), Some("battery at 20%"));
+    assert_eq!(rule(&floor, false, battery(20, true)).as_deref(), Some("low battery (20%)"));
     assert_eq!(rule(&floor, false, battery(21, true)), None);
     assert_eq!(rule(&floor, false, battery(5, false)), None);
     assert_eq!(rule(&floor, false, None), None);
@@ -474,7 +509,7 @@ mod tests {
   #[test]
   fn unplugging_ends_it_when_asked() {
     let asked = Settings { off_unplugged: true, ..Settings::default() };
-    assert_eq!(rule(&asked, false, battery(90, true)).as_deref(), Some("running on battery"));
+    assert_eq!(rule(&asked, false, battery(90, true)).as_deref(), Some("battery power"));
     assert_eq!(rule(&asked, false, battery(90, false)), None);
     assert_eq!(rule(&Settings::default(), false, battery(90, true)), None);
   }

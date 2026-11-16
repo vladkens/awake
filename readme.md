@@ -5,10 +5,10 @@ Keeps your Mac awake from the menu bar, like [KeepingYouAwake](https://github.co
 ## 🌟 Features
 
 - A click on the cup opens the menu and never toggles anything, so a missed click turns nothing off.
-- Keep awake until turned off, for 1 hour or for 3 hours; the menu counts down the time left.
+- Keep awake until turned off, or for 15 minutes to 8 hours; the menu and the settings window count down the time left.
 - Let the display sleep: only the system stays awake (`caffeinate -i` instead of `-d`).
-- Battery rules: turn off below a battery level (10–90 %), in Low Power Mode, or when unplugged. A session turned on by hand while a rule applies stays on until its cause clears, and the cup shows steam meanwhile.
-- Launch at login, and turn on at launch.
+- Battery rules: turn off below a battery level (10–90 %), in Low Power Mode, or when unplugged. A session turned on by hand while a rule applies stays on until its cause clears.
+- Launch at login, and keep awake at launch.
 - Settings… in the menu, or open the app again, to get the settings window.
 - Idle at 0 % CPU: the battery, Low Power Mode and wake come as notifications, nothing polls.
 
@@ -23,7 +23,7 @@ make install   # builds Awake.app into ~/Applications and starts it
 
 ## 🚀 Usage
 
-Click the cup in the menu bar and pick how long to keep the Mac awake; pick the checked item again to turn it off. Launch at login works from the installed `Awake.app` only.
+Click the cup in the menu bar and pick Keep Awake Indefinitely, or a length under Keep Awake For; Turn Off in the same place ends it. The switch at the top of the settings window's General tab does the same. Launch at login works from the installed `Awake.app` only.
 
 ```sh
 make run              # builds and starts Awake Dev, with logs

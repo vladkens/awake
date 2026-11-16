@@ -1,11 +1,13 @@
 // Copyright (c) vladkens | MIT License | https://github.com/vladkens/awake
 //! AppKit for what nimbo has no API for: an SF Symbol as the status item's icon (nimbo's
-//! [`TrayIcon`] takes pixels or path data), the status line and checkmarks of the menu while it is
-//! open (nimbo builds a menu set meanwhile only once it closes, and tells nothing of its opening
-//! or closing), and the Dock icon of a bare executable (a bundle has its `.icns`).
+//! [`TrayIcon`] takes pixels or path data), the status line, toggle and checkmarks of the menu
+//! while it is open (nimbo builds a menu set meanwhile only once it closes, and tells nothing of
+//! its opening or closing), the time of day as the user's clock shows it, and the Dock icon of a
+//! bare executable (a bundle has its `.icns`).
 
 use std::cell::RefCell;
 use std::ptr::NonNull;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use block2::RcBlock;
 use nimbo::tray::TrayIcon;
@@ -16,7 +18,10 @@ use objc2_app_kit::{
   NSDeviceRGBColorSpace, NSGraphicsContext, NSImage, NSMenu, NSMenuDidBeginTrackingNotification,
   NSMenuDidEndTrackingNotification,
 };
-use objc2_foundation::{NSBundle, NSData, NSNotification, NSNotificationCenter, NSRect, NSString};
+use objc2_foundation::{
+  NSBundle, NSData, NSDate, NSDateFormatter, NSDateFormatterStyle, NSNotification,
+  NSNotificationCenter, NSRect, NSString,
+};
 
 /// The app's icon, for the Dock of a bare executable.
 const ICON: &[u8] = include_bytes!("../assets/icon.png");
@@ -106,24 +111,35 @@ pub fn watch_menu(on: fn(bool)) {
   }
 }
 
-/// The open menu as it changes: its first item's title (the status line) and the checkmarks of
-/// the items after the divider under it.
-pub fn show_open(status: &str, checks: impl Iterator<Item = bool>) {
+/// The open menu as it changes: the titles of its first item (the status line) and of the toggle
+/// after the divider under it, and the checkmarks in the submenu after the toggle.
+pub fn show_open(status: &str, toggle: &str, checks: impl Iterator<Item = bool>) {
   OPEN.with_borrow(|menu| {
     let Some(menu) = menu else { return };
-    if let Some(item) = menu.itemAtIndex(0) {
-      let status = NSString::from_str(status);
-      if item.title() != status {
-        item.setTitle(&status);
+    for (i, title) in [(0, status), (2, toggle)] {
+      let Some(item) = menu.itemAtIndex(i) else { continue };
+      let title = NSString::from_str(title);
+      if item.title() != title {
+        item.setTitle(&title);
       }
     }
 
-    for (i, on) in (2..).zip(checks) {
-      if let Some(item) = menu.itemAtIndex(i) {
+    let Some(submenu) = menu.itemAtIndex(3).and_then(|item| item.submenu()) else { return };
+    for (i, on) in (0..).zip(checks) {
+      if let Some(item) = submenu.itemAtIndex(i) {
         item.setState(if on { NSControlStateValueOn } else { NSControlStateValueOff });
       }
     }
   });
+}
+
+/// `t`'s time of day as the user's clock shows it: `18:42`, `6:42 PM`.
+pub fn clock(t: SystemTime) -> String {
+  let secs = t.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs_f64();
+  let format = NSDateFormatter::new();
+  format.setDateStyle(NSDateFormatterStyle::NoStyle);
+  format.setTimeStyle(NSDateFormatterStyle::ShortStyle);
+  format.stringFromDate(&NSDate::dateWithTimeIntervalSince1970(secs)).to_string()
 }
 
 /// The app's icon in the Dock while a window shows, for a bare executable.
