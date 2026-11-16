@@ -2,8 +2,9 @@
 //! Awake: keeps the Mac awake from the menu bar, as KeepingYouAwake does. A click on the cup opens
 //! the menu: on until turned off or for one of [`LENGTHS`]. The settings window (Settings… in the
 //! menu, or the app opened again) has the rest: launch at login, on at launch, the display left to
-//! sleep, and the battery's rules, which a session turned on by hand outlives. The status item, the
-//! menu and the window are nimbo's; what nimbo lacks is AppKit's, in `appkit.rs`.
+//! sleep, off when the screen locks, and the battery's rules, which a session turned on by hand
+//! outlives. The status item, the menu and the window are nimbo's; what nimbo lacks is AppKit's, in
+//! `appkit.rs`.
 //!
 //!   make run
 
@@ -189,6 +190,10 @@ impl State {
         self.timer += 1;
         self.expire();
       }
+      Change::Locked if self.settings.off_on_lock && self.session.is_some() => {
+        self.stop(Some("screen locked".into()));
+      }
+      Change::Locked => {}
     }
 
     self.show();

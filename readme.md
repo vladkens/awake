@@ -7,10 +7,11 @@ Keeps your Mac awake from the menu bar, like [KeepingYouAwake](https://github.co
 - A click on the cup opens the menu and never toggles anything, so a missed click turns nothing off.
 - Keep awake until turned off, or for 15 minutes to 8 hours; the menu and the settings window count down the time left.
 - Let the display sleep: only the system stays awake (`caffeinate -i` instead of `-d`).
+- Turn off when the screen locks.
 - Battery rules: turn off below a battery level (10–90 %), in Low Power Mode, or when unplugged. A session turned on by hand while a rule applies stays on until its cause clears.
 - Launch at login, and keep awake at launch.
 - Settings… in the menu, or open the app again, to get the settings window.
-- Idle at 0 % CPU: the battery, Low Power Mode and wake come as notifications, nothing polls.
+- Idle at 0 % CPU: the battery, Low Power Mode, wake and the screen lock come as notifications, nothing polls.
 
 ## 📥 Install
 

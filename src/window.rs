@@ -29,7 +29,8 @@ const BATTERY: Icon = Icon::new(concat!(
 ));
 
 /// The rows' symbols, in nimbo's 24-unit box, each on a tile of its colour, as System Settings'
-/// sidebar: `power`, `cup.and.saucer`, `display`, `battery.25percent`, `powerplug`.
+/// sidebar: `power`, `cup.and.saucer`, `display`, `lock`, `battery.25percent`,
+/// `powerplug`.
 const POWER: Icon = Icon::new("M12 3.5v7.5M7.2 6.6a7.5 7.5 0 1 0 9.6 0");
 const CUP: Icon = Icon::new(
   "M5 8.5h11v5a4.5 4.5 0 0 1-4.5 4.5h-2A4.5 4.5 0 0 1 5 13.5ZM16 10h1a2.5 2.5 0 0 1 0 5h-1.3M4 21h13",
@@ -37,6 +38,10 @@ const CUP: Icon = Icon::new(
 const SCREEN: Icon = Icon::new(concat!(
   "M5 4.5h14a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 15V6A1.5 1.5 0 0 1 5 4.5Z",
   "M12 16.5v3.5M8.5 20h7"
+));
+const LOCK: Icon = Icon::new(concat!(
+  "M7 10.5h10a1.5 1.5 0 0 1 1.5 1.5v7a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 19v-7A1.5 1.5 0 0 1 7 10.5Z",
+  "M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"
 ));
 const LOW: Icon = Icon::new(concat!(
   "M5 7h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z",
@@ -47,6 +52,7 @@ const WHITE: Color = rgb(0xffffff);
 const GREY: Color = rgb(0x8e8e93);
 const ORANGE: Color = rgb(0xff9500);
 const BLUE: Color = rgb(0x0a84ff);
+const INDIGO: Color = rgb(0x5e5ce6);
 const GREEN: Color = rgb(0x30b94d);
 const YELLOW: Color = rgb(0xf5b800);
 const RED: Color = rgb(0xff453a);
@@ -78,6 +84,7 @@ const ACKS: [(&str, &str, &str); 2] = [
 ];
 
 const DISPLAY: &str = "Only the Mac stays awake.";
+const LOCKS: &str = "Locking the screen ends Keep Awake.";
 const FLOOR: &str = "Only on battery.";
 const APPROVE: &str = "Allow it in System Settings → Login Items.";
 const BUNDLE: &str = "Works only from the installed app (make install).";
@@ -150,6 +157,9 @@ impl Form {
     ui.form_section(fs, "Screen", |ui| {
       let row = FormRow::new("Let the display sleep").caption(DISPLAY).tile(SCREEN);
       ui.form_row(&tiled(fs, BLUE), row, |ui| ui.toggle(&mut s.display_sleeps, ""));
+
+      let row = FormRow::new("Turn off when the screen locks").caption(LOCKS).tile(LOCK);
+      ui.form_row(&tiled(fs, INDIGO), row, |ui| ui.toggle(&mut s.off_on_lock, ""));
     });
   }
 

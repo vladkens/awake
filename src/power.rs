@@ -1,7 +1,7 @@
 // Copyright (c) vladkens | MIT License | https://github.com/vladkens/awake
 //! What keeps the Mac awake (a power assertion, as `caffeinate` takes one) and what the app watches
-//! to let it sleep again: the battery and Low Power Mode. Both come as notifications on the main
-//! run loop: nothing polls.
+//! to let it sleep again: the battery, Low Power Mode and the screen locking. All come as
+//! notifications on the main run loop: nothing polls.
 
 use std::cell::OnceCell;
 use std::ffi::{CStr, c_void};
@@ -15,8 +15,9 @@ use objc2_core_foundation::{
   CFDictionary, CFRetained, CFRunLoop, CFRunLoopSource, CFString, CFType, kCFRunLoopCommonModes,
 };
 use objc2_foundation::{
-  NSDictionary, NSNotification, NSNotificationCenter, NSNotificationName, NSNumber,
-  NSOperationQueue, NSProcessInfo, NSProcessInfoPowerStateDidChangeNotification, NSString,
+  NSDictionary, NSDistributedNotificationCenter, NSNotification, NSNotificationCenter,
+  NSNotificationName, NSNumber, NSOperationQueue, NSProcessInfo,
+  NSProcessInfoPowerStateDidChangeNotification, NSString,
 };
 use objc2_io_kit::{
   IOPMAssertionCreateWithName, IOPMAssertionID, IOPMAssertionRelease, IOPSCopyPowerSourcesInfo,
@@ -124,6 +125,8 @@ pub enum Change {
   LowPowerMode,
   /// The Mac woke from sleep.
   Woke,
+  /// The screen locked.
+  Locked,
 }
 
 /// A notification center and the token of what the app hears from it.
@@ -157,11 +160,15 @@ pub fn watch(on: fn(Change)) -> Option<Watch> {
 
   let (center, workspace) =
     (NSNotificationCenter::defaultCenter(), NSWorkspace::sharedWorkspace().notificationCenter());
+  let distributed = NSDistributedNotificationCenter::defaultCenter().into_super();
+  // loginwindow's, in no SDK header.
+  let locked = NSString::from_str("com.apple.screenIsLocked");
   // SAFETY: statics of the frameworks.
   let observers = unsafe {
     vec![
       observe(center, NSProcessInfoPowerStateDidChangeNotification, Change::LowPowerMode),
       observe(workspace, NSWorkspaceDidWakeNotification, Change::Woke),
+      observe(distributed, &locked, Change::Locked),
     ]
   };
 
