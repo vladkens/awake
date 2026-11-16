@@ -150,10 +150,11 @@ impl State {
     }
   }
 
-  /// Only the countdown's pace changes: the menu is built as it opens and once it closes.
+  /// The menu opens or closes: built anew, as the time left, the login item's state and the
+  /// battery change while it is closed, and the countdown's pace changes.
   fn on_menu(&mut self, open: bool) {
     self.menu_open = open;
-    self.countdown(SystemTime::now());
+    self.show();
   }
 
   fn on_form(&mut self, event: FormEvent) {
@@ -388,11 +389,9 @@ impl State {
     }
 
     self.tray.set_tooltip(&format!("{}: {description}", INFO.name));
-    // An open menu shows the new one once it closes: its status line, toggle and checkmarks
-    // change meanwhile.
+    // The same items as before: an open menu changes in place.
     let (on, length) = (self.session.is_some(), self.session.as_ref().and_then(|s| s.length));
     self.tray.set_menu(&menu(&status, on, length));
-    appkit::show_open(&status, toggle(on), LENGTHS.iter().map(|&l| length == Some(l)));
 
     if let Some(window) = &self.window {
       let shown = self.shown();
@@ -461,10 +460,9 @@ fn main() {
 
 fn start(main: &mut Main) {
   let tray = Tray::new(appkit::symbol(&["cup.and.saucer"]), &format!("{}: off", INFO.name));
-  // The time left, the login item's state and the battery change while the menu is closed.
-  tray.on_open(|_, _| with_state(State::show));
+  tray.on_open(|_, _| with_state(|state| state.on_menu(true)));
+  tray.on_close(|_, _| with_state(|state| state.on_menu(false)));
   tray.on_item(|main, _, action| with_state(|state| state.on_tray(main, action)));
-  appkit::watch_menu(|open| with_state(|state| state.on_menu(open)));
   main.on_reopen(|main| with_state(|state| state.open_settings(main)));
 
   let state = State {

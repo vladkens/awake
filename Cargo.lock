@@ -91,7 +91,7 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 [[package]]
 name = "nimbo"
 version = "0.0.1"
-source = "git+https://github.com/vladkens/nimbo?rev=d6104fd#d6104fde66df1b51341864e8cb2f7a0bb6ce5221"
+source = "git+https://github.com/vladkens/nimbo?rev=063cc81#063cc81d4c26272f31110b0d48d2c642a8bf86c6"
 dependencies = [
  "block2",
  "dispatch2",

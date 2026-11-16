@@ -19,9 +19,9 @@ plist.LSMinimumSystemVersion = "13.0"
 
 [dependencies]
 block2 = "0.6.2"
-nimbo = { version = "0.0.1", git = "https://github.com/vladkens/nimbo", rev = "d6104fd" }
+nimbo = { version = "0.0.1", git = "https://github.com/vladkens/nimbo", rev = "063cc81" }
 objc2 = "0.6.5"
-objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSApplication", "NSResponder", "NSImage", "NSBitmapImageRep", "NSImageRep", "NSGraphicsContext", "NSGraphics", "NSMenu", "NSMenuItem", "NSWorkspace", "NSCell"] }
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSImage", "NSBitmapImageRep", "NSImageRep", "NSGraphicsContext", "NSGraphics", "NSWorkspace"] }
 objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFArray", "CFRunLoop", "CFString"] }
 objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "block2", "NSDictionary", "NSGeometry", "NSNotification", "NSObject", "NSOperation", "NSProcessInfo", "NSString", "NSUserDefaults", "NSValue", "NSDate", "NSDateFormatter", "NSFormatter", "NSDistributedNotificationCenter"] }
 objc2-io-kit = { version = "0.3.2", default-features = false, features = ["std", "ps", "pwr_mgt"] }
