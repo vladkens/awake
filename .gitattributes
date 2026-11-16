@@ -1,2 +1,0 @@
-# The scripts run in sh, also when copied from a Windows checkout with core.autocrlf.
-*.sh text eol=lf

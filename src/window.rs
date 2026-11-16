@@ -91,7 +91,7 @@ const LOCKS: &str = "Locking the screen ends Keep Awake.";
 const SHOW_LEFT: &str = "Beside the cup, while a timed session runs.";
 const FLOOR: &str = "Only on battery.";
 const APPROVE: &str = "Allow it in System Settings → Login Items.";
-const BUNDLE: &str = "Works only from the installed app (make install).";
+const BUNDLE: &str = "Works only from Awake.app.";
 const NO_BATTERY: &str = "This Mac has no battery.";
 
 /// What the window shows besides the settings.

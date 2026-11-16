@@ -15,23 +15,22 @@ Keeps your Mac awake from the menu bar, like [KeepingYouAwake](https://github.co
 
 ## 📥 Install
 
-From source for now. You need macOS 13 or later (Apple Silicon or Intel) and a recent stable Rust (edition 2024).
+macOS 13 or later, Apple Silicon or Intel. Releases come as a DMG on GitHub once the first one is out; until then, build it from source with a recent stable Rust and [shipo](https://github.com/vladkens/shipo):
 
 ```sh
 git clone https://github.com/vladkens/awake && cd awake
-make install   # builds Awake.app into ~/Applications and starts it
+make run   # builds and starts Awake Dev
 ```
 
 ## 🚀 Usage
 
-Click the cup in the menu bar and pick Keep Awake Indefinitely, or a length under Keep Awake For; Turn Off in the same place ends it. The switch at the top of the settings window's General tab does the same. Launch at login works from the installed `Awake.app` only.
+Click the cup in the menu bar and pick Keep Awake Indefinitely, or a length under Keep Awake For; Turn Off in the same place ends it. The switch at the top of the settings window's General tab does the same.
 
 ```sh
-make run              # builds and starts Awake Dev, with logs
 pmset -g assertions   # shows what keeps the Mac awake
 ```
 
-Awake Dev is a separate app with its own id and settings, so it runs beside an installed Awake. `pmset -g assertions` shows which of the two holds the Mac.
+Awake Dev, `make run`'s, has its own id and settings, so it runs beside an installed Awake. `pmset -g assertions` shows which of the two holds the Mac.
 
 ## 🦀 Why Rust
 

@@ -20,14 +20,15 @@ use nimbo::tray::{Item, Menu, Tray};
 use nimbo::{AppInfo, Main, Presence, Proxy, Shortcut, Window, autostart};
 use power::{Assertion, Battery, Change};
 use settings::Settings;
+use tracing_subscriber::EnvFilter;
 use window::{Form, FormEvent, Shown};
 
-/// The app this build is: [RELEASE], or [DEV] built with `AWAKE_FLAVOR=dev` (build.rs).
-const INFO: AppInfo = if cfg!(awake_dev) { DEV } else { RELEASE };
+/// The app this build is: [RELEASE], or [DEV] in a debug build.
+const INFO: AppInfo = if cfg!(debug_assertions) { DEV } else { RELEASE };
 /// Awake, as released and installed: its id is in every install (settings, login item).
 const RELEASE: AppInfo =
   AppInfo { id: "me.vladkens.awake", name: "Awake", presence: Presence::Accessory };
-/// Awake Dev, `make run`'s: an app of its own beside the installed Awake, with its own settings,
+/// Awake Dev, `make run`'s: an app of its own beside an installed Awake, with its own settings,
 /// login item and instance, all by its id.
 const DEV: AppInfo =
   AppInfo { id: "me.vladkens.awake-dev", name: "Awake Dev", presence: Presence::Accessory };
@@ -450,7 +451,7 @@ fn secs_left(until: SystemTime, now: SystemTime) -> u64 {
 
 fn main() {
   tracing_subscriber::fmt()
-    .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+    .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
     .with_writer(std::io::stderr)
     .init();
 
@@ -459,8 +460,6 @@ fn main() {
 }
 
 fn start(main: &mut Main) {
-  appkit::set_dock_icon();
-
   let tray = Tray::new(appkit::symbol(&["cup.and.saucer"]), &format!("{}: off", INFO.name));
   // The time left, the login item's state and the battery change while the menu is closed.
   tray.on_open(|_, _| with_state(State::show));
@@ -508,7 +507,7 @@ mod tests {
     // What installs and macOS know Awake by: never changed.
     assert_eq!((RELEASE.id, RELEASE.name), ("me.vladkens.awake", "Awake"));
     assert_eq!((DEV.id, DEV.name), ("me.vladkens.awake-dev", "Awake Dev"));
-    assert_eq!(INFO.id, RELEASE.id, "without AWAKE_FLAVOR, as `make test` builds, it is Awake");
+    assert_eq!(INFO.id, RELEASE.id, "a release build, as `make test`'s, is Awake");
   }
 
   #[test]

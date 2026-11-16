@@ -2,8 +2,7 @@
 //! AppKit for what nimbo has no API for: an SF Symbol as the status item's icon (nimbo's
 //! [`TrayIcon`] takes pixels or path data), the status line, toggle and checkmarks of the menu
 //! while it is open (nimbo builds a menu set meanwhile only once it closes, and tells nothing of
-//! its opening or closing), the time of day as the user's clock shows it, and the Dock icon of a
-//! bare executable (a bundle has its `.icns`).
+//! its opening or closing), and the time of day as the user's clock shows it.
 
 use std::cell::RefCell;
 use std::ptr::NonNull;
@@ -19,12 +18,9 @@ use objc2_app_kit::{
   NSMenuDidEndTrackingNotification,
 };
 use objc2_foundation::{
-  NSBundle, NSData, NSDate, NSDateFormatter, NSDateFormatterStyle, NSNotification,
-  NSNotificationCenter, NSRect, NSString,
+  NSDate, NSDateFormatter, NSDateFormatterStyle, NSNotification, NSNotificationCenter, NSRect,
+  NSString,
 };
-
-/// The app's icon, for the Dock of a bare executable.
-const ICON: &[u8] = include_bytes!("../assets/icon.png");
 
 thread_local! {
   /// The status item's menu while it is open.
@@ -140,16 +136,4 @@ pub fn clock(t: SystemTime) -> String {
   format.setDateStyle(NSDateFormatterStyle::NoStyle);
   format.setTimeStyle(NSDateFormatterStyle::ShortStyle);
   format.stringFromDate(&NSDate::dateWithTimeIntervalSince1970(secs)).to_string()
-}
-
-/// The app's icon in the Dock while a window shows, for a bare executable.
-pub fn set_dock_icon() {
-  let Some(mtm) = MainThreadMarker::new() else { return };
-  if NSBundle::mainBundle().bundlePath().to_string().ends_with(".app") {
-    return;
-  }
-
-  let icon = NSImage::initWithData(NSImage::alloc(), &NSData::with_bytes(ICON));
-  // SAFETY: an image or none: the bundle's icon.
-  unsafe { NSApplication::sharedApplication(mtm).setApplicationIconImage(icon.as_deref()) };
 }
