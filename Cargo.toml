@@ -1,0 +1,19 @@
+[package]
+name = "awake"
+version = "0.1.0"
+edition = "2024"
+description = "Keeps the Mac awake from the menu bar."
+authors = ["vladkens"]
+license = "MIT"
+repository = "https://github.com/vladkens/awake"
+
+[dependencies]
+
+[profile.release]
+debug = 1
+
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3
