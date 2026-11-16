@@ -7,7 +7,26 @@ authors = ["vladkens"]
 license = "MIT"
 repository = "https://github.com/vladkens/awake"
 
+[package.metadata.shipo]
+id = "me.vladkens.awake"
+name = "Awake"
+icon = "assets/icon.png"
+comment = "Keeps the Mac awake from the menu bar"
+
+[package.metadata.shipo.macos]
+accessory = true
+plist.LSMinimumSystemVersion = "13.0"
+
 [dependencies]
+block2 = "0.6.2"
+nimbo = { version = "0.0.1", git = "https://github.com/vladkens/nimbo", rev = "063cc81" }
+objc2 = "0.6.5"
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSImage", "NSBitmapImageRep", "NSImageRep", "NSGraphicsContext", "NSGraphics", "NSWorkspace"] }
+objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFArray", "CFRunLoop", "CFString"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "block2", "NSDictionary", "NSGeometry", "NSNotification", "NSObject", "NSOperation", "NSProcessInfo", "NSString", "NSUserDefaults", "NSValue", "NSDistributedNotificationCenter"] }
+objc2-io-kit = { version = "0.3.2", default-features = false, features = ["std", "ps", "pwr_mgt"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "ansi", "env-filter"] }
 
 [profile.release]
 debug = 1
