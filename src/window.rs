@@ -1,7 +1,7 @@
 // Copyright (c) vladkens | MIT License | https://github.com/vladkens/awake
 //! The settings window, drawn by nimbo in the look of System Settings: toolbar tabs over pages of
 //! grey plates. General has Keep Awake's switch beside the app's icon first, then the rows of
-//! startup and the screen; Battery the rules that turn it off, the floor's slider
+//! startup, the screen and the menu bar; Battery the rules that turn it off, the floor's slider
 //! under its row; About the app, its links and thanks. A row has a switch and a grey line under
 //! its name where the name doesn't say it all (an ⓘ beside the name says why a row is off). The
 //! window is as high as the page shown. It shows what the app gives it ([`Shown`]) and hands what
@@ -10,8 +10,8 @@
 
 use nimbo::autostart::State as Login;
 use nimbo::{
-  Align, App, Color, Config, ControlSize, Font, FormRow, FormStyle, Icon, Png, Proxy, Section,
-  Slider, Style, TabItem, TextStyle, Ui, grow, px, rgb,
+  Align, App, Color, Config, ControlSize, Design, Font, FormRow, FormStyle, Icon, Png, Proxy,
+  Section, Slider, Style, TabItem, TextStyle, Ui, Weight, grow, px, rgb,
 };
 
 use crate::settings::{FLOOR_MAX, FLOOR_MIN, FLOOR_STEP, Settings};
@@ -29,7 +29,7 @@ const BATTERY: Icon = Icon::new(concat!(
 ));
 
 /// The rows' symbols, in nimbo's 24-unit box, each on a tile of its colour, as System Settings'
-/// sidebar: `power`, `cup.and.saucer`, `display`, `lock`, `battery.25percent`,
+/// sidebar: `power`, `cup.and.saucer`, `display`, `lock`, `timer`, `battery.25percent`,
 /// `powerplug`.
 const POWER: Icon = Icon::new("M12 3.5v7.5M7.2 6.6a7.5 7.5 0 1 0 9.6 0");
 const CUP: Icon = Icon::new(
@@ -43,6 +43,8 @@ const LOCK: Icon = Icon::new(concat!(
   "M7 10.5h10a1.5 1.5 0 0 1 1.5 1.5v7a1.5 1.5 0 0 1-1.5 1.5H7A1.5 1.5 0 0 1 5.5 19v-7A1.5 1.5 0 0 1 7 10.5Z",
   "M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"
 ));
+const TIMER: Icon =
+  Icon::new("M12 8.5v4.5l2.5 1.5M10 2.5h4M4.5 13a7.5 7.5 0 1 0 15 0a7.5 7.5 0 1 0-15 0");
 const LOW: Icon = Icon::new(concat!(
   "M5 7h11a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z",
   "M21 10.5v3M6.5 10.5v3"
@@ -53,6 +55,7 @@ const GREY: Color = rgb(0x8e8e93);
 const ORANGE: Color = rgb(0xff9500);
 const BLUE: Color = rgb(0x0a84ff);
 const INDIGO: Color = rgb(0x5e5ce6);
+const PURPLE: Color = rgb(0xbf5af2);
 const GREEN: Color = rgb(0x30b94d);
 const YELLOW: Color = rgb(0xf5b800);
 const RED: Color = rgb(0xff453a);
@@ -85,6 +88,7 @@ const ACKS: [(&str, &str, &str); 2] = [
 
 const DISPLAY: &str = "Only the Mac stays awake.";
 const LOCKS: &str = "Locking the screen ends Keep Awake.";
+const SHOW_LEFT: &str = "Beside the cup, while a timed session runs.";
 const FLOOR: &str = "Only on battery.";
 const APPROVE: &str = "Allow it in System Settings → Login Items.";
 const BUNDLE: &str = "Works only from the installed app (make install).";
@@ -97,6 +101,8 @@ pub struct Shown {
   /// Awake now, and until when or why not, as its first row says it.
   pub awake: bool,
   pub status: String,
+  /// A timed session's clock, `29:24`, each second.
+  pub left: Option<String>,
   /// The Mac has a battery.
   pub battery: bool,
   /// Launch at login; `Err` where it can't (a bare executable).
@@ -161,6 +167,11 @@ impl Form {
       let row = FormRow::new("Turn off when the screen locks").caption(LOCKS).tile(LOCK);
       ui.form_row(&tiled(fs, INDIGO), row, |ui| ui.toggle(&mut s.off_on_lock, ""));
     });
+
+    ui.form_section(fs, "Menu Bar", |ui| {
+      let row = FormRow::new("Show the time left").caption(SHOW_LEFT).tile(TIMER);
+      ui.form_row(&tiled(fs, PURPLE), row, |ui| ui.toggle(&mut s.show_left, ""));
+    });
   }
 
   /// The app's icon over Keep Awake's switch, as a System Settings pane's head.
@@ -171,9 +182,16 @@ impl Form {
       let row = FormRow::new("Keep Awake").caption(&self.shown.status).tile(icon);
       let mut awake = self.shown.awake;
       ui.form_row(fs, row, |ui| {
-        if ui.toggle(&mut awake, "").changed {
-          self.send(FormEvent::Awake(awake));
-        }
+        ui.row(Style::new().gap(14.0).align(Align::End, Align::Center), |ui| {
+          if let Some(left) = &self.shown.left {
+            let font = Font { size: 24.0, weight: Weight::Medium, design: Design::Monospaced };
+            ui.text(left, ui.theme().label().font(font));
+          }
+
+          if ui.toggle(&mut awake, "").changed {
+            self.send(FormEvent::Awake(awake));
+          }
+        });
       });
     });
   }

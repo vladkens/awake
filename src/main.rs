@@ -2,9 +2,9 @@
 //! Awake: keeps the Mac awake from the menu bar, as KeepingYouAwake does. A click on the cup opens
 //! the menu: on until turned off or for one of [`LENGTHS`]. The settings window (Settings… in the
 //! menu, or the app opened again) has the rest: launch at login, on at launch, the display left to
-//! sleep, off when the screen locks, and the battery's rules, which a session turned on by hand
-//! outlives. The status item, the menu and the window are nimbo's; what nimbo lacks is AppKit's, in
-//! `appkit.rs`.
+//! sleep, off when the screen locks, the time left beside the cup, and the battery's rules, which a
+//! session turned on by hand outlives. The status item, the menu and the window are nimbo's; what
+//! nimbo lacks is AppKit's, in `appkit.rs`.
 //!
 //!   make run
 
@@ -75,8 +75,9 @@ struct State {
   menu_open: bool,
   /// The countdown's tick: one armed before the last [`State::show`] finds another number.
   tick: u64,
-  /// The icon's symbol: drawn again only when it changes.
+  /// The icon's symbol and the time beside it: set again only when they change.
   icon: &'static str,
+  title: String,
   _watch: Option<power::Watch>,
 }
 
@@ -269,21 +270,28 @@ impl State {
     }
   }
 
-  /// While the menu is open, the time left in it ticks each second, on the second's change. The
-  /// tick shows it, and arms the next.
+  /// The time left shown next changes: in the open menu or window on the second, beside the cup
+  /// on the minute. The tick shows it, and arms the next.
   fn countdown(&mut self, now: SystemTime) {
     self.tick += 1;
-    let until = self.session.as_ref().and_then(|s| s.until);
-    let (true, Some(until)) = (self.menu_open, until) else { return };
-
-    let tick = self.tick;
-    let left = until.duration_since(now).unwrap_or_default();
-    let next = match left.subsec_nanos() {
-      0 => Duration::from_secs(1),
-      nanos => Duration::from_nanos(nanos.into()),
+    let unit = match (self.menu_open || self.window.is_some(), self.settings.show_left) {
+      (true, _) => Duration::from_secs(1),
+      (false, true) => minutes(1),
+      (false, false) => return,
     };
 
-    self.proxy.after(next, move |_| {
+    let Some(until) = self.session.as_ref().and_then(|s| s.until) else { return };
+    let tick = self.tick;
+    // The clock's seconds are rounded up: a number changes as the time left passes a whole
+    // second, one less than the unit's multiple.
+    let left = until.duration_since(now).unwrap_or_default();
+    let left = left.saturating_sub(Duration::from_secs(1));
+    let next = match left.as_nanos() % unit.as_nanos() {
+      0 => unit,
+      rest => Duration::from_nanos(rest as u64),
+    };
+
+    self.proxy.after(early(next), move |_| {
       with_state(|state| {
         if state.tick == tick {
           state.show();
@@ -327,10 +335,12 @@ impl State {
       (None, None) => "Off".into(),
     };
 
+    let until = self.session.as_ref().and_then(|s| s.until);
     Shown {
       settings: self.settings,
       awake: self.session.is_some(),
       status,
+      left: until.map(|until| left(until, SystemTime::now())),
       battery: power::battery().is_some(),
       login: autostart::state(&INFO),
     }
@@ -363,6 +373,17 @@ impl State {
     if self.icon != icon {
       self.icon = icon;
       self.tray.set_icon(appkit::symbol(&[icon]));
+    }
+
+    let until = self.session.as_ref().and_then(|s| s.until);
+    let title = match (self.settings.show_left, until) {
+      (true, Some(until)) => short(until, now),
+      _ => String::new(),
+    };
+
+    if self.title != title {
+      self.tray.set_title(&title);
+      self.title = title;
     }
 
     self.tray.set_tooltip(&format!("{}: {description}", INFO.name));
@@ -398,15 +419,31 @@ fn rule(settings: &Settings, low_power: bool, battery: Option<Battery>) -> Optio
   settings.off_unplugged.then(|| "battery power".into())
 }
 
-/// The time from `now` until `until` as a clock counts down: `59:42`, `2:59:42`; whole seconds,
-/// rounded up, so that it starts at the length chosen.
+/// The time from `now` until `until` as a clock counts down: `59:42`, `2:59:42`.
 fn left(until: SystemTime, now: SystemTime) -> String {
-  let left = until.duration_since(now).unwrap_or_default();
-  let secs = left.as_secs() + u64::from(left.subsec_nanos() > 0);
+  let secs = secs_left(until, now);
   match secs / 3600 {
     0 => format!("{}:{:02}", secs / 60, secs % 60),
     h => format!("{h}:{:02}:{:02}", secs / 60 % 60, secs % 60),
   }
+}
+
+/// The time left as the menu bar shows it: the hours and minutes of the menu's clock, `15m`,
+/// `1h`, `7h 59m`, and `<1m` for its last minute.
+fn short(until: SystemTime, now: SystemTime) -> String {
+  let m = secs_left(until, now) / 60;
+  match (m / 60, m % 60) {
+    (0, 0) => "<1m".into(),
+    (0, m) => format!("{m}m"),
+    (h, 0) => format!("{h}h"),
+    (h, m) => format!("{h}h {m}m"),
+  }
+}
+
+/// Whole seconds from `now` until `until`, rounded up, so that a clock starts at the length chosen.
+fn secs_left(until: SystemTime, now: SystemTime) -> u64 {
+  let left = until.duration_since(now).unwrap_or_default();
+  left.as_secs() + u64::from(left.subsec_nanos() > 0)
 }
 
 // MARK: Launch
@@ -442,6 +479,7 @@ fn start(main: &mut Main) {
     menu_open: false,
     tick: 0,
     icon: "cup.and.saucer",
+    title: String::new(),
     _watch: None,
   };
   STATE.set(Some(state));
@@ -484,6 +522,22 @@ mod tests {
     assert_eq!(at(3_599_001), "1:00:00");
     assert_eq!(at(3 * 3_600_000 - 18_000), "2:59:42");
     assert_eq!(left(now, now + HOUR), "0:00");
+  }
+
+  #[test]
+  fn the_menu_bar_reads_as_the_menus_clock() {
+    let now = SystemTime::UNIX_EPOCH;
+    let at = |millis| short(now + Duration::from_millis(millis), now);
+    assert_eq!(at(15 * 60_000), "15m");
+    assert_eq!(at(15 * 60_000 - 500), "15m");
+    assert_eq!(at(15 * 60_000 - 1000), "14m");
+    assert_eq!(at(29 * 60_000 + 24_000), "29m");
+    assert_eq!(at(60_000), "1m");
+    assert_eq!(at(59_000), "<1m");
+    assert_eq!(at(0), "<1m");
+    assert_eq!(at(3_600_000), "1h");
+    assert_eq!(at(3_599_000), "59m");
+    assert_eq!(at(8 * 3_600_000 - 60_000), "7h 59m");
   }
 
   #[test]

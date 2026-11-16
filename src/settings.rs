@@ -12,6 +12,8 @@ pub struct Settings {
   pub display_sleeps: bool,
   /// Locking the screen ends it.
   pub off_on_lock: bool,
+  /// A timed session's time left beside the icon.
+  pub show_left: bool,
   /// On battery at or below [`Settings::floor`] it ends.
   pub floor_on: bool,
   /// The charge, in percent: [`FLOOR_MIN`] to [`FLOOR_MAX`] by [`FLOOR_STEP`].
@@ -33,6 +35,7 @@ impl Default for Settings {
       on_launch: false,
       display_sleeps: false,
       off_on_lock: false,
+      show_left: false,
       floor_on: false,
       floor: 20,
       off_in_low_power: false,
@@ -44,6 +47,7 @@ impl Default for Settings {
 const ON_LAUNCH: &str = "activateOnLaunch";
 const DISPLAY_SLEEPS: &str = "allowDisplaySleep";
 const OFF_ON_LOCK: &str = "deactivateOnScreenLock";
+const SHOW_LEFT: &str = "showTimeLeftInMenuBar";
 const FLOOR_ON: &str = "batteryFloorEnabled";
 const FLOOR: &str = "batteryFloor";
 const OFF_IN_LOW_POWER: &str = "deactivateInLowPowerMode";
@@ -63,6 +67,7 @@ impl Settings {
       on_launch: flag(ON_LAUNCH),
       display_sleeps: flag(DISPLAY_SLEEPS),
       off_on_lock: flag(OFF_ON_LOCK),
+      show_left: flag(SHOW_LEFT),
       floor_on: flag(FLOOR_ON),
       floor,
       off_in_low_power: flag(OFF_IN_LOW_POWER),
@@ -76,6 +81,7 @@ impl Settings {
     flag(ON_LAUNCH, self.on_launch);
     flag(DISPLAY_SLEEPS, self.display_sleeps);
     flag(OFF_ON_LOCK, self.off_on_lock);
+    flag(SHOW_LEFT, self.show_left);
     flag(FLOOR_ON, self.floor_on);
     defaults.setInteger_forKey(self.floor as isize, &NSString::from_str(FLOOR));
     flag(OFF_IN_LOW_POWER, self.off_in_low_power);
