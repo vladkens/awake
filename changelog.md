@@ -1,0 +1,11 @@
+## v0.1.0 – 2026-11-18
+
+The first release: a menu bar app that keeps the Mac awake, as KeepingYouAwake does.
+
+### Features
+
+- Added the menu: a click on the cup opens it and never toggles anything; keep awake until turned off or for 15 minutes to 8 hours, with the time left counting down (#1)
+- Added the settings: launch at login, keep awake at launch, let the display sleep, turn off when the screen locks, the time left beside the cup, and the battery rules (below a level, Low Power Mode, unplugged) (#1)
+- Added updates in place: checked once a day, Update to … in the menu, Check for Updates in About (#3)
+- Added the command line: `awake on 1h`, `awake off`, `awake status`, named holds for scripts and agents (`awake hold claude --for 1h`, `awake release claude`), and `awake -- <command>` (#4)
+- Added DMGs for Apple silicon and Intel, and the Homebrew cask `vladkens/tap/awake` (#2)

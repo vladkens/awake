@@ -17,7 +17,15 @@ Keeps your Mac awake from the menu bar, like [KeepingYouAwake](https://github.co
 
 ## 📥 Install
 
-macOS 13 or later, Apple Silicon or Intel. Releases come as a DMG on GitHub once the first one is out; until then, build it from source with a recent stable Rust and [shipo](https://github.com/vladkens/shipo):
+macOS 13 or later, Apple silicon or Intel. With Homebrew, which also links the command line as `awake`:
+
+```sh
+brew install --cask vladkens/tap/awake
+```
+
+Or download the DMG from the [latest release](https://github.com/vladkens/awake/releases/latest). Awake updates itself from there.
+
+To build it from source, with a recent stable Rust and [shipo](https://github.com/vladkens/shipo):
 
 ```sh
 git clone https://github.com/vladkens/awake && cd awake
