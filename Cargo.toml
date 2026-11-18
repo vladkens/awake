@@ -23,7 +23,7 @@ nimbo = { version = "0.0.1", git = "https://github.com/vladkens/nimbo", rev = "0
 objc2 = "0.6.5"
 objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSImage", "NSBitmapImageRep", "NSImageRep", "NSGraphicsContext", "NSGraphics", "NSWorkspace"] }
 objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFArray", "CFRunLoop", "CFString"] }
-objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "block2", "NSDictionary", "NSGeometry", "NSNotification", "NSObject", "NSOperation", "NSProcessInfo", "NSString", "NSUserDefaults", "NSValue", "NSDistributedNotificationCenter"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "block2", "NSDictionary", "NSGeometry", "NSNotification", "NSObject", "NSOperation", "NSProcessInfo", "NSString", "NSUserDefaults", "NSValue", "NSDistributedNotificationCenter", "NSDate"] }
 objc2-io-kit = { version = "0.3.2", default-features = false, features = ["std", "ps", "pwr_mgt"] }
 shipo = { version = "0.2.1", default-features = false }
 tracing = "0.1.44"
