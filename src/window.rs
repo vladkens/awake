@@ -88,7 +88,11 @@ const ACKS: [(&str, &str, &str); 2] = [
 const DISPLAY: &str = "Only the Mac stays awake.";
 const LOCKS: &str = "Locking the screen ends Keep Awake.";
 const SHOW_LEFT: &str = "Beside the cup, while a timed session runs.";
-const FLOOR: &str = "Only on battery.";
+const LOGIN: &str = "Awake opens when you log in.";
+const ON_LAUNCH: &str = "Keep Awake turns on as Awake opens.";
+const FLOOR: &str = "On battery. Turned on by hand below it, it stays on.";
+const LOW_POWER: &str = "Set in System Settings → Battery.";
+const UNPLUGGED: &str = "Keep Awake runs only on the power adapter.";
 const APPROVE: &str = "Allow it in System Settings → Login Items.";
 const BUNDLE: &str = "Works only from Awake.app.";
 const NO_BATTERY: &str = "This Mac has no battery.";
@@ -143,7 +147,7 @@ impl Form {
         Err(_) => (false, Some(BUNDLE)),
       };
 
-      let row = FormRow::new(label("Launch at login", why)).tile(POWER);
+      let row = FormRow::new(label("Launch at login", why)).caption(LOGIN).tile(POWER);
       ui.disabled(self.shown.login.is_err()).form_row(&tiled(fs, GREY), row, |ui| {
         if ui.toggle(&mut login, "").changed {
           self.send(FormEvent::Login(login));
@@ -151,7 +155,7 @@ impl Form {
       });
 
       let s = &mut self.shown.settings;
-      let row = FormRow::new("Keep awake at launch").tile(CUP);
+      let row = FormRow::new("Keep awake at launch").caption(ON_LAUNCH).tile(CUP);
       ui.form_row(&tiled(fs, ORANGE), row, |ui| ui.toggle(&mut s.on_launch, ""));
     });
 
@@ -195,10 +199,10 @@ impl Form {
       let row = FormRow::new(label(&name, why)).caption(FLOOR).footer(level).tile(LOW);
       ui.disabled(no_battery).form_row(&tiled(fs, RED), row, |ui| ui.toggle(&mut s.floor_on, ""));
 
-      let row = FormRow::new("In Low Power Mode").tile(BATTERY);
+      let row = FormRow::new("In Low Power Mode").caption(LOW_POWER).tile(BATTERY);
       ui.form_row(&tiled(fs, YELLOW), row, |ui| ui.toggle(&mut s.off_in_low_power, ""));
 
-      let row = FormRow::new(label("When unplugged", why)).tile(PLUG);
+      let row = FormRow::new(label("When unplugged", why)).caption(UNPLUGGED).tile(PLUG);
       ui.disabled(no_battery)
         .form_row(&tiled(fs, GREEN), row, |ui| ui.toggle(&mut s.off_unplugged, ""));
     });
@@ -215,17 +219,27 @@ impl Form {
       ui.text(concat!("Version ", env!("CARGO_PKG_VERSION")), fs.caption);
       ui.text("Keeps your Mac awake from the menu bar.", fs.caption);
       ui.el(Style::new().h(px(6.0)));
-      if let Some(update) = &self.shown.update {
-        self.update(ui, fs, update.clone());
+
+      let (text, button) = self.shown.update.clone().map(update).unwrap_or_default();
+      if let Some(text) = text {
+        ui.text(&text, fs.caption);
+        ui.el(Style::new().h(px(6.0)));
       }
 
       ui.row(Style::new().gap(8.0), |ui| {
-        if ui.id(("link", "source")).button("View on GitHub").clicked {
+        let tip = |url: &'static str| url.trim_start_matches("https://");
+        if ui.id(("link", "source")).help(tip(SOURCE)).button("GitHub").clicked {
           open(SOURCE);
         }
 
-        if ui.id(("link", "coffee")).button("Buy Me a Coffee").clicked {
+        if ui.id(("link", "coffee")).help(tip(COFFEE)).button("Donate").clicked {
           open(COFFEE);
+        }
+
+        if let Some((label, event)) = button
+          && ui.id("update").button(label).clicked
+        {
+          self.send(event);
         }
       });
     });
@@ -246,41 +260,29 @@ impl Form {
       }
     });
   }
+}
 
-  /// The updater's line and its button, as Sparkle's About: Check for Updates, what the check
-  /// found, the download.
-  fn update(&self, ui: &mut Ui, fs: &FormStyle, update: Update) {
-    let name = crate::INFO.name;
-    let check = Some(("Check for Updates", FormEvent::Check));
-    let (text, button) = match update {
-      Update::Idle => (None, check),
-      Update::Checking => (Some("Checking for updates…".into()), None),
-      Update::UpToDate => (Some(format!("{name} is up to date.")), check),
-      Update::Available(r) => {
-        let text = format!("{name} {} is available.", updater::shown(&r.version));
-        (Some(text), Some(("Install and Relaunch", FormEvent::Install)))
-      }
-      Update::Downloading(_, done) => (Some(format!("Downloading the update… {done}%")), None),
-      Update::Failed(r, why) => {
-        let again = if r.is_some() { FormEvent::Install } else { FormEvent::Check };
-        let what = if r.is_some() { "The update failed" } else { "Couldn't check for updates" };
-        (Some(format!("{what}: {why}")), Some(("Try Again", again)))
-      }
-      // The check at launch offers the release again, unless it can't update any more.
-      Update::Relaunched(why) => (Some(format!("The update failed: {why}")), None),
-    };
-
-    if let Some(text) = text {
-      ui.text(&text, fs.caption);
+/// The updater's line and its button, as Sparkle's About: Check for Updates, what the check found,
+/// the download.
+fn update(update: Update) -> (Option<String>, Option<(&'static str, FormEvent)>) {
+  let name = crate::INFO.name;
+  let check = Some(("Check for Updates", FormEvent::Check));
+  match update {
+    Update::Idle => (None, check),
+    Update::Checking => (Some("Checking for updates…".into()), None),
+    Update::UpToDate => (Some(format!("{name} is up to date.")), check),
+    Update::Available(r) => {
+      let text = format!("{name} {} is available.", updater::shown(&r.version));
+      (Some(text), Some(("Install and Relaunch", FormEvent::Install)))
     }
-
-    if let Some((label, event)) = button
-      && ui.id("update").button(label).clicked
-    {
-      self.send(event);
+    Update::Downloading(_, done) => (Some(format!("Downloading the update… {done}%")), None),
+    Update::Failed(r, why) => {
+      let again = if r.is_some() { FormEvent::Install } else { FormEvent::Check };
+      let what = if r.is_some() { "The update failed" } else { "Couldn't check for updates" };
+      (Some(format!("{what}: {why}")), Some(("Try Again", again)))
     }
-
-    ui.el(Style::new().h(px(6.0)));
+    // The check at launch offers the release again, unless it can't update any more.
+    Update::Relaunched(why) => (Some(format!("The update failed: {why}")), None),
   }
 }
 
