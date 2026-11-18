@@ -266,6 +266,8 @@ impl Form {
         let what = if r.is_some() { "The update failed" } else { "Couldn't check for updates" };
         (Some(format!("{what}: {why}")), Some(("Try Again", again)))
       }
+      // The check at launch offers the release again, unless it can't update any more.
+      Update::Relaunched(why) => (Some(format!("The update failed: {why}")), None),
     };
 
     if let Some(text) = text {
