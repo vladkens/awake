@@ -1,7 +1,7 @@
 // Copyright (c) vladkens | MIT License | https://github.com/vladkens/awake
 //! What keeps the Mac awake (a power assertion, as `caffeinate` takes one) and what the app watches
-//! to let it sleep again: the battery, Low Power Mode and the screen locking. All come as
-//! notifications on the main run loop: nothing polls.
+//! to let it sleep again: the battery, Low Power Mode, the screen locking and the clock. All come
+//! as notifications on the main run loop: nothing polls.
 
 use std::cell::OnceCell;
 use std::ffi::{CStr, c_void};
@@ -17,7 +17,7 @@ use objc2_core_foundation::{
 use objc2_foundation::{
   NSDictionary, NSDistributedNotificationCenter, NSNotification, NSNotificationCenter,
   NSNotificationName, NSNumber, NSOperationQueue, NSProcessInfo,
-  NSProcessInfoPowerStateDidChangeNotification, NSString,
+  NSProcessInfoPowerStateDidChangeNotification, NSString, NSSystemClockDidChangeNotification,
 };
 use objc2_io_kit::{
   IOPMAssertionCreateWithName, IOPMAssertionID, IOPMAssertionRelease, IOPSCopyPowerSourcesInfo,
@@ -125,6 +125,8 @@ pub enum Change {
   LowPowerMode,
   /// The Mac woke from sleep.
   Woke,
+  /// The clock was set: the ends, wall clock times, come sooner or later.
+  Clock,
   /// The screen locked.
   Locked,
 }
@@ -166,7 +168,8 @@ pub fn watch(on: fn(Change)) -> Option<Watch> {
   // SAFETY: statics of the frameworks.
   let observers = unsafe {
     vec![
-      observe(center, NSProcessInfoPowerStateDidChangeNotification, Change::LowPowerMode),
+      observe(center.clone(), NSProcessInfoPowerStateDidChangeNotification, Change::LowPowerMode),
+      observe(center, NSSystemClockDidChangeNotification, Change::Clock),
       observe(workspace, NSWorkspaceDidWakeNotification, Change::Woke),
       observe(distributed, &locked, Change::Locked),
     ]

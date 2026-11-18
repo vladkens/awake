@@ -70,8 +70,8 @@ struct Session {
   length: Option<Duration>,
   /// When it ends by itself.
   until: Option<SystemTime>,
-  /// Turned on by hand while a rule said no (why): the rules wait until that clears.
-  forced: Option<String>,
+  /// The rules that said no when it was turned on by hand: each waits until it clears.
+  waived: Rules,
 }
 
 /// A hold from the command line: `awake hold`'s by its name and 0, `awake --`'s by its command's
@@ -252,8 +252,9 @@ impl State {
         self.enforce();
         self.hold();
       }
-      // The queue's clock stopped while the Mac slept: the ends are timed again.
-      Change::Woke => {
+      // The queue's clock stopped while the Mac slept, or the wall clock moved: the ends are timed
+      // again.
+      Change::Woke | Change::Clock => {
         self.timer += 1;
         self.expire();
         self.check(false);
@@ -283,12 +284,12 @@ impl State {
     }
   }
 
-  /// A session of `length`, or until turned off. By hand it starts whatever the rules say, and they
-  /// wait until what they object to clears; at launch they decide.
+  /// A session of `length`, or until turned off. By hand it starts whatever the rules say, and
+  /// those wait until what they object to clears; at launch they decide.
   fn start(&mut self, length: Option<Duration>, by_hand: bool) {
-    let why = self.why_not();
-    if why.is_some() && !by_hand {
-      self.stop(why);
+    let rules = self.rules();
+    if !rules.is_empty() && !by_hand {
+      self.stop(rules.why());
       return;
     }
 
@@ -299,7 +300,7 @@ impl State {
 
     self.timer += 1;
     let until = length.map(|length| SystemTime::now() + length);
-    self.session = Some(Session { _assertion: assertion, length, until, forced: why });
+    self.session = Some(Session { _assertion: assertion, length, until, waived: rules });
     self.stopped = None;
 
     if let Some(length) = length {
@@ -321,16 +322,21 @@ impl State {
   fn on_request(&mut self, request: Request, conn: u64) -> String {
     let wakes = request.wakes();
     let by_hand = matches!(request, Request::On(_));
+    let mut added = None;
     match request {
       Request::On(length) => self.start(length, true),
       Request::Off => self.off(),
       Request::Status => {}
       Request::Hold(name, length) => {
         let until = length.map(|length| SystemTime::now() + length);
-        self.holds.insert((name, 0), until);
+        let before = self.holds.insert((name.clone(), 0), until);
+        added = Some(((name, 0), before));
       }
       Request::Release(name) => _ = self.holds.remove(&(name, 0)),
-      Request::Run(name) => _ = self.holds.insert((name, conn), None),
+      Request::Run(name) => {
+        self.holds.insert((name.clone(), conn), None);
+        added = Some(((name, conn), None));
+      }
     }
 
     self.hold();
@@ -339,7 +345,23 @@ impl State {
     // A rule saying no is no refusal: the status says why.
     let held = self.held.is_some() || self.why_not().is_some();
     let refused = if by_hand { self.session.is_none() } else { wakes && !held };
-    if refused { format!("error: {report}") } else { report }
+    if !refused {
+      return report;
+    }
+
+    // Told no, the command line gives up on the hold: kept, it would hold later, unseen. A hold
+    // renewed is as it was.
+    if let Some((key, before)) = added {
+      match before {
+        Some(until) => _ = self.holds.insert(key, until),
+        None => _ = self.holds.remove(&key),
+      }
+
+      self.hold();
+      self.show();
+    }
+
+    format!("error: {report}")
   }
 
   /// A command's connection closed: its hold ends.
@@ -515,20 +537,23 @@ impl State {
     }
   }
 
-  /// Ends the session when a rule says so, unless it was forced: then the rules wait until what
-  /// they object to clears (the adapter plugged in), and count again from there.
+  /// Ends the session when a rule says so, unless it was turned on despite that rule: then the rule
+  /// waits until what it objects to clears (the adapter plugged in), and counts again from there.
   fn enforce(&mut self) {
-    let why = self.why_not();
+    let rules = self.rules();
     let Some(session) = &mut self.session else { return };
-    match (why, &session.forced) {
-      (None, _) => session.forced = None,
-      (Some(why), Some(_)) => session.forced = Some(why),
-      (Some(why), None) => self.stop(Some(why)),
+    match rules.without(session.waived) {
+      new if new.is_empty() => session.waived = rules.and(session.waived),
+      new => self.stop(new.why()),
     }
   }
 
+  fn rules(&self) -> Rules {
+    Rules::new(&self.settings, power::low_power_mode(), power::battery())
+  }
+
   fn why_not(&self) -> Option<String> {
-    rule(&self.settings, power::low_power_mode(), power::battery())
+    self.rules().why()
   }
 
   /// What the window shows besides the settings, read now.
@@ -546,7 +571,7 @@ impl State {
     let mut status = match (&self.session, &self.held, &self.stopped) {
       (Some(session), ..) => {
         let mut status = String::from("Keeping awake");
-        if let Some(why) = &session.forced {
+        if let Some(why) = session.waived.why() {
           status += &format!(" despite {why}");
         }
 
@@ -622,19 +647,61 @@ impl State {
 
 // MARK: Rules
 
-/// Why the Mac can't stay awake, by the settings: Low Power Mode, a battery at or below the floor,
-/// or running on battery at all.
-fn rule(settings: &Settings, low_power: bool, battery: Option<Battery>) -> Option<String> {
-  if settings.off_in_low_power && low_power {
-    return Some("Low Power Mode".into());
+/// The rules that say the Mac can't stay awake, by the settings: Low Power Mode, a battery below
+/// the floor, running on battery at all.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct Rules {
+  low_power: bool,
+  /// The battery's charge, below the floor.
+  floor: Option<u32>,
+  unplugged: bool,
+}
+
+impl Rules {
+  fn new(settings: &Settings, low_power: bool, battery: Option<Battery>) -> Self {
+    let battery = battery.filter(|b| b.draining);
+    let floor = battery.map(|b| b.percent).filter(|&p| settings.floor_on && p < settings.floor);
+    Self {
+      low_power: settings.off_in_low_power && low_power,
+      floor,
+      unplugged: settings.off_unplugged && battery.is_some(),
+    }
   }
 
-  let battery = battery.filter(|b| b.draining)?;
-  if settings.floor_on && battery.percent <= settings.floor {
-    return Some(format!("low battery ({}%)", battery.percent));
+  fn is_empty(self) -> bool {
+    self == Self::default()
   }
 
-  settings.off_unplugged.then(|| "battery power".into())
+  /// Those of `self` that `other` lacks.
+  fn without(self, other: Self) -> Self {
+    Self {
+      low_power: self.low_power && !other.low_power,
+      floor: self.floor.filter(|_| other.floor.is_none()),
+      unplugged: self.unplugged && !other.unplugged,
+    }
+  }
+
+  /// Those of both, with the charge of `self`.
+  fn and(self, other: Self) -> Self {
+    Self {
+      low_power: self.low_power && other.low_power,
+      floor: self.floor.filter(|_| other.floor.is_some()),
+      unplugged: self.unplugged && other.unplugged,
+    }
+  }
+
+  /// The first of them, as the menu says it.
+  fn why(self) -> Option<String> {
+    if self.low_power {
+      return Some("Low Power Mode".into());
+    }
+
+    if let Some(percent) = self.floor {
+      return Some(format!("low battery ({percent}%)"));
+    }
+
+    self.unplugged.then(|| "battery power".into())
+  }
 }
 
 /// The time from `now` until `until` as a clock counts down: `59:42`, `2:59:42`.
@@ -793,6 +860,10 @@ mod tests {
     assert_eq!(titles, want);
   }
 
+  fn rule(settings: &Settings, low_power: bool, battery: Option<Battery>) -> Option<String> {
+    Rules::new(settings, low_power, battery).why()
+  }
+
   #[test]
   fn low_power_mode_ends_it_only_when_asked() {
     let asked = Settings { off_in_low_power: true, ..Settings::default() };
@@ -804,8 +875,8 @@ mod tests {
   #[test]
   fn the_floor_ends_it_on_battery_only() {
     let floor = Settings { floor_on: true, floor: 20, ..Settings::default() };
-    assert_eq!(rule(&floor, false, battery(20, true)).as_deref(), Some("low battery (20%)"));
-    assert_eq!(rule(&floor, false, battery(21, true)), None);
+    assert_eq!(rule(&floor, false, battery(19, true)).as_deref(), Some("low battery (19%)"));
+    assert_eq!(rule(&floor, false, battery(20, true)), None, "below the floor, not at it");
     assert_eq!(rule(&floor, false, battery(5, false)), None);
     assert_eq!(rule(&floor, false, None), None);
     assert_eq!(rule(&Settings { floor_on: false, ..floor }, false, battery(5, true)), None);
@@ -817,5 +888,36 @@ mod tests {
     assert_eq!(rule(&asked, false, battery(90, true)).as_deref(), Some("battery power"));
     assert_eq!(rule(&asked, false, battery(90, false)), None);
     assert_eq!(rule(&Settings::default(), false, battery(90, true)), None);
+  }
+
+  #[test]
+  fn a_session_on_despite_one_rule_ends_at_another() {
+    let settings =
+      Settings { floor_on: true, floor: 20, off_in_low_power: true, ..Settings::default() };
+    // What enforce() does with the session's waived rules: kept, or the session ends and why.
+    let step = |waived: Rules, low_power, battery| {
+      let rules = Rules::new(&settings, low_power, battery);
+      let new = rules.without(waived);
+      if new.is_empty() { Ok(rules.and(waived)) } else { Err(new.why()) }
+    };
+    let ended = |why: &str| Err(Some(why.to_string()));
+
+    // Turned on by hand in Low Power Mode, on battery.
+    let waived = Rules::new(&settings, true, battery(50, true));
+    let waived = step(waived, true, battery(30, true)).expect("only Low Power Mode");
+    assert_eq!(waived.why().as_deref(), Some("Low Power Mode"));
+    assert_eq!(step(waived, true, battery(19, true)), ended("low battery (19%)"));
+    assert_eq!(step(waived, false, battery(19, true)), ended("low battery (19%)"));
+
+    // Low Power Mode turned off clears its waiver: on again, it ends the session.
+    let waived = step(waived, false, battery(30, true)).expect("no rule");
+    assert!(waived.is_empty());
+    assert_eq!(step(waived, true, battery(30, true)), ended("Low Power Mode"));
+
+    // A waived floor stays waived as the charge falls, and the status shows the charge.
+    let waived = Rules::new(&settings, false, battery(15, true));
+    let waived = step(waived, false, battery(12, true)).expect("the floor waived");
+    assert_eq!(waived.why().as_deref(), Some("low battery (12%)"));
+    assert_eq!(step(waived, true, battery(12, true)), ended("Low Power Mode"));
   }
 }

@@ -14,7 +14,7 @@ pub struct Settings {
   pub off_on_lock: bool,
   /// A timed session's time left beside the icon.
   pub show_left: bool,
-  /// On battery at or below [`Settings::floor`] it ends.
+  /// On battery below [`Settings::floor`] it ends.
   pub floor_on: bool,
   /// The charge, in percent: [`FLOOR_MIN`] to [`FLOOR_MAX`] by [`FLOOR_STEP`].
   pub floor: u32,
