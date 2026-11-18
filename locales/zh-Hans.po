@@ -1,0 +1,314 @@
+# Awake's strings in Simplified Chinese, as macOS names its terms (`make i18n` merges the code's
+# changes). MIT License, as Awake.
+msgid ""
+msgstr ""
+"Project-Id-Version: Awake\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-18 10:21+0200\n"
+"PO-Revision-Date: 2026-11-18 10:00+0200\n"
+"Last-Translator: \n"
+"Language-Team: none\n"
+"Language: zh-Hans\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: src/main.rs:164
+msgid "Keep Awake For"
+msgstr "保持唤醒时长"
+
+#: src/main.rs:168
+msgid "Settings…"
+msgstr "设置…"
+
+#: src/main.rs:169
+#, rust-format
+msgid "Quit {name}"
+msgstr "退出{name}"
+
+#: src/main.rs:179
+#, rust-format
+msgid "Update to {version}"
+msgstr "更新到 {version}"
+
+#: src/main.rs:183
+#, rust-format
+msgid "Downloading {version}… {done}%"
+msgstr "正在下载 {version}… {done}%"
+
+#: src/main.rs:187
+#, rust-format
+msgid "Retry Update to {version}"
+msgstr "重试更新到 {version}"
+
+#: src/main.rs:203
+msgid "Keep Awake Indefinitely"
+msgstr "无限期保持唤醒"
+
+#: src/main.rs:203
+msgid "Turn Off"
+msgstr "关闭"
+
+#: src/main.rs:209
+#, rust-format
+msgid "{n} Minute"
+msgid_plural "{n} Minutes"
+msgstr[0] "{n} 分钟"
+
+#: src/main.rs:210
+#, rust-format
+msgid "{n} Hour"
+msgid_plural "{n} Hours"
+msgstr[0] "{n} 小时"
+
+#: src/main.rs:628
+#, rust-format
+msgid "Keeping awake despite {why}"
+msgstr "尽管{why}，仍保持唤醒"
+
+#: src/main.rs:629 src/main.rs:637
+msgid "Keeping awake"
+msgstr "正在保持唤醒"
+
+#. Translators: {time} is a clock counting down: 59:42, 2:59:42.
+#: src/main.rs:634
+#, rust-format
+msgid "{time} left"
+msgstr "剩余 {time}"
+
+#. Translators: the menu's first line after the app turned off by itself, before why.
+#: src/main.rs:639
+msgid "Turned off"
+msgstr "已关闭"
+
+#. Translators: the menu's first line while nothing keeps the Mac awake.
+#: src/main.rs:641
+msgid "Off"
+msgstr "已关闭"
+
+#. Translators: {names} are the command line's holds, by the names it gave them.
+#: src/main.rs:650
+#, rust-format
+msgid "for {names}"
+msgstr "用于 {names}"
+
+#: src/main.rs:653 src/main.rs:1082
+#, rust-format
+msgid "not for {names}: {why}"
+msgstr "未用于 {names}：{why}"
+
+#. Translators: why the Mac can't stay awake, after "Turned off ·" and in "Keeping awake
+#. despite {why}"; these and the next ones.
+#: src/main.rs:784
+msgid "Low Power Mode"
+msgstr "低电量模式"
+
+#: src/main.rs:785
+#, rust-format
+msgid "low battery ({percent}%)"
+msgstr "电量低（{percent}%）"
+
+#: src/main.rs:786
+msgid "battery power"
+msgstr "使用电池供电"
+
+#: src/main.rs:787
+msgid "screen locked"
+msgstr "屏幕已锁定"
+
+#: src/main.rs:788
+msgid "the system refused"
+msgstr "系统拒绝"
+
+#: src/main.rs:796
+#, rust-format
+msgid "{name}: keeping awake"
+msgstr "{name}：正在保持唤醒"
+
+#: src/main.rs:798
+#, rust-format
+msgid "{name}: off"
+msgstr "{name}：已关闭"
+
+#: src/window.rs:71
+msgid "General"
+msgstr "通用"
+
+#: src/window.rs:72
+msgid "Battery"
+msgstr "电池"
+
+#: src/window.rs:73
+msgid "About"
+msgstr "关于"
+
+#: src/window.rs:82
+msgid "The UI toolkit Awake is drawn with"
+msgstr "绘制 Awake 的 UI 工具包"
+
+#: src/window.rs:85
+msgid "The app that inspired Awake"
+msgstr "启发 Awake 的应用"
+
+#: src/window.rs:90
+msgid "Only the Mac stays awake."
+msgstr "仅 Mac 保持唤醒。"
+
+#: src/window.rs:91
+msgid "Locking the screen ends Keep Awake."
+msgstr "锁定屏幕会结束保持唤醒。"
+
+#: src/window.rs:92
+msgid "Beside the cup, while a timed session runs."
+msgstr "在定时会话期间显示在杯子旁边。"
+
+#: src/window.rs:93
+msgid "Awake opens when you log in."
+msgstr "登录时打开 Awake。"
+
+#: src/window.rs:94
+msgid "Keep Awake turns on as Awake opens."
+msgstr "Awake 打开时即开始保持唤醒。"
+
+#: src/window.rs:95
+msgid "On battery. Turned on by hand below it, it stays on."
+msgstr "使用电池时。低于此电量时手动开启，则保持开启。"
+
+#: src/window.rs:96
+msgid "Set in System Settings → Battery."
+msgstr "在系统设置 → 电池中设置。"
+
+#: src/window.rs:97
+msgid "Keep Awake runs only on the power adapter."
+msgstr "仅在连接电源适配器时保持唤醒。"
+
+#: src/window.rs:98
+msgid "Allow it in System Settings → Login Items."
+msgstr "请在系统设置 → 登录项中允许。"
+
+#: src/window.rs:99
+msgid "Works only from Awake.app."
+msgstr "仅在 Awake.app 中有效。"
+
+#: src/window.rs:100
+msgid "This Mac has no battery."
+msgstr "这台 Mac 没有电池。"
+
+#: src/window.rs:146
+msgid "Startup"
+msgstr "启动"
+
+#: src/window.rs:154
+msgid "Launch at login"
+msgstr "登录时打开"
+
+#: src/window.rs:162
+msgid "Keep awake at launch"
+msgstr "启动时保持唤醒"
+
+#: src/window.rs:167
+msgid "Screen"
+msgstr "屏幕"
+
+#: src/window.rs:168
+msgid "Let the display sleep"
+msgstr "允许显示器睡眠"
+
+#: src/window.rs:171
+msgid "Turn off when the screen locks"
+msgstr "锁定屏幕时关闭"
+
+#: src/window.rs:175
+msgid "Menu Bar"
+msgstr "菜单栏"
+
+#: src/window.rs:176
+msgid "Show the time left"
+msgstr "显示剩余时间"
+
+#. Translators: the header of the rows Below 20% battery, In Low Power Mode, When unplugged.
+#: src/window.rs:188
+msgid "Turn Off Keep Awake"
+msgstr "自动关闭保持唤醒"
+
+#: src/window.rs:189
+#, rust-format
+msgid "Below {percent}% battery"
+msgstr "电量低于 {percent}%"
+
+#. Translators: the battery slider's ticks: 10%, 50%, 90%.
+#: src/window.rs:198
+#, rust-format
+msgid "{percent}%"
+msgstr "{percent}%"
+
+#: src/window.rs:201
+msgid "Battery level"
+msgstr "电池电量"
+
+#: src/window.rs:209
+msgid "In Low Power Mode"
+msgstr "低电量模式下"
+
+#: src/window.rs:213
+msgid "When unplugged"
+msgstr "断开电源时"
+
+#: src/window.rs:227
+#, rust-format
+msgid "Version {version}"
+msgstr "版本 {version}"
+
+#: src/window.rs:228
+msgid "Keeps your Mac awake from the menu bar."
+msgstr "从菜单栏让你的 Mac 保持唤醒。"
+
+#: src/window.rs:243
+msgid "Donate"
+msgstr "捐助"
+
+#: src/window.rs:257
+msgid "Acknowledgements"
+msgstr "致谢"
+
+#: src/window.rs:277
+msgid "Check for Updates"
+msgstr "检查更新"
+
+#: src/window.rs:280
+msgid "Checking for updates…"
+msgstr "正在检查更新…"
+
+#: src/window.rs:281
+#, rust-format
+msgid "{name} is up to date."
+msgstr "{name} 已是最新版本。"
+
+#: src/window.rs:283
+#, rust-format
+msgid "{name} {version} is available."
+msgstr "{name} {version} 现已推出。"
+
+#: src/window.rs:284
+msgid "Install and Relaunch"
+msgstr "安装并重新启动"
+
+#: src/window.rs:286
+#, rust-format
+msgid "Downloading the update… {done}%"
+msgstr "正在下载更新… {done}%"
+
+#: src/window.rs:289 src/window.rs:296
+#, rust-format
+msgid "The update failed: {why}"
+msgstr "更新失败：{why}"
+
+#: src/window.rs:290
+#, rust-format
+msgid "Couldn't check for updates: {why}"
+msgstr "无法检查更新：{why}"
+
+#: src/window.rs:293
+msgid "Try Again"
+msgstr "重试"

@@ -1,0 +1,316 @@
+# Awake's strings in German, as macOS names its terms (`make i18n` merges the code's
+# changes). MIT License, as Awake.
+msgid ""
+msgstr ""
+"Project-Id-Version: Awake\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-18 10:21+0200\n"
+"PO-Revision-Date: 2026-11-18 10:00+0200\n"
+"Last-Translator: \n"
+"Language-Team: none\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/main.rs:164
+msgid "Keep Awake For"
+msgstr "Wach halten für"
+
+#: src/main.rs:168
+msgid "Settings…"
+msgstr "Einstellungen…"
+
+#: src/main.rs:169
+#, rust-format
+msgid "Quit {name}"
+msgstr "{name} beenden"
+
+#: src/main.rs:179
+#, rust-format
+msgid "Update to {version}"
+msgstr "Auf {version} aktualisieren"
+
+#: src/main.rs:183
+#, rust-format
+msgid "Downloading {version}… {done}%"
+msgstr "{version} wird geladen… {done} %"
+
+#: src/main.rs:187
+#, rust-format
+msgid "Retry Update to {version}"
+msgstr "Update auf {version} erneut versuchen"
+
+#: src/main.rs:203
+msgid "Keep Awake Indefinitely"
+msgstr "Unbegrenzt wach halten"
+
+#: src/main.rs:203
+msgid "Turn Off"
+msgstr "Ausschalten"
+
+#: src/main.rs:209
+#, rust-format
+msgid "{n} Minute"
+msgid_plural "{n} Minutes"
+msgstr[0] "{n} Minute"
+msgstr[1] "{n} Minuten"
+
+#: src/main.rs:210
+#, rust-format
+msgid "{n} Hour"
+msgid_plural "{n} Hours"
+msgstr[0] "{n} Stunde"
+msgstr[1] "{n} Stunden"
+
+#: src/main.rs:628
+#, rust-format
+msgid "Keeping awake despite {why}"
+msgstr "Hält wach trotz: {why}"
+
+#: src/main.rs:629 src/main.rs:637
+msgid "Keeping awake"
+msgstr "Hält wach"
+
+#. Translators: {time} is a clock counting down: 59:42, 2:59:42.
+#: src/main.rs:634
+#, rust-format
+msgid "{time} left"
+msgstr "noch {time}"
+
+#. Translators: the menu's first line after the app turned off by itself, before why.
+#: src/main.rs:639
+msgid "Turned off"
+msgstr "Ausgeschaltet"
+
+#. Translators: the menu's first line while nothing keeps the Mac awake.
+#: src/main.rs:641
+msgid "Off"
+msgstr "Aus"
+
+#. Translators: {names} are the command line's holds, by the names it gave them.
+#: src/main.rs:650
+#, rust-format
+msgid "for {names}"
+msgstr "für {names}"
+
+#: src/main.rs:653 src/main.rs:1082
+#, rust-format
+msgid "not for {names}: {why}"
+msgstr "nicht für {names}: {why}"
+
+#. Translators: why the Mac can't stay awake, after "Turned off ·" and in "Keeping awake
+#. despite {why}"; these and the next ones.
+#: src/main.rs:784
+msgid "Low Power Mode"
+msgstr "Stromsparmodus"
+
+#: src/main.rs:785
+#, rust-format
+msgid "low battery ({percent}%)"
+msgstr "Batterie schwach ({percent} %)"
+
+#: src/main.rs:786
+msgid "battery power"
+msgstr "Batteriebetrieb"
+
+#: src/main.rs:787
+msgid "screen locked"
+msgstr "Bildschirm gesperrt"
+
+#: src/main.rs:788
+msgid "the system refused"
+msgstr "vom System abgelehnt"
+
+#: src/main.rs:796
+#, rust-format
+msgid "{name}: keeping awake"
+msgstr "{name}: hält wach"
+
+#: src/main.rs:798
+#, rust-format
+msgid "{name}: off"
+msgstr "{name}: aus"
+
+#: src/window.rs:71
+msgid "General"
+msgstr "Allgemein"
+
+#: src/window.rs:72
+msgid "Battery"
+msgstr "Batterie"
+
+#: src/window.rs:73
+msgid "About"
+msgstr "Über"
+
+#: src/window.rs:82
+msgid "The UI toolkit Awake is drawn with"
+msgstr "Das UI-Toolkit, mit dem Awake gezeichnet wird"
+
+#: src/window.rs:85
+msgid "The app that inspired Awake"
+msgstr "Die App, die Awake inspiriert hat"
+
+#: src/window.rs:90
+msgid "Only the Mac stays awake."
+msgstr "Nur der Mac bleibt wach."
+
+#: src/window.rs:91
+msgid "Locking the screen ends Keep Awake."
+msgstr "Das Sperren des Bildschirms beendet das Wachhalten."
+
+#: src/window.rs:92
+msgid "Beside the cup, while a timed session runs."
+msgstr "Neben der Tasse, solange eine Sitzung mit Dauer läuft."
+
+#: src/window.rs:93
+msgid "Awake opens when you log in."
+msgstr "Awake öffnet sich bei der Anmeldung."
+
+#: src/window.rs:94
+msgid "Keep Awake turns on as Awake opens."
+msgstr "Wachhalten startet, sobald Awake öffnet."
+
+#: src/window.rs:95
+msgid "On battery. Turned on by hand below it, it stays on."
+msgstr "Im Batteriebetrieb. Darunter von Hand eingeschaltet, bleibt es an."
+
+#: src/window.rs:96
+msgid "Set in System Settings → Battery."
+msgstr "Festgelegt in Systemeinstellungen → Batterie."
+
+#: src/window.rs:97
+msgid "Keep Awake runs only on the power adapter."
+msgstr "Wachhalten läuft nur am Netzteil."
+
+#: src/window.rs:98
+msgid "Allow it in System Settings → Login Items."
+msgstr "Erlaube es in Systemeinstellungen → Anmeldeobjekte."
+
+#: src/window.rs:99
+msgid "Works only from Awake.app."
+msgstr "Funktioniert nur aus Awake.app."
+
+#: src/window.rs:100
+msgid "This Mac has no battery."
+msgstr "Dieser Mac hat keine Batterie."
+
+#: src/window.rs:146
+msgid "Startup"
+msgstr "Start"
+
+#: src/window.rs:154
+msgid "Launch at login"
+msgstr "Bei Anmeldung öffnen"
+
+#: src/window.rs:162
+msgid "Keep awake at launch"
+msgstr "Beim Start wach halten"
+
+#: src/window.rs:167
+msgid "Screen"
+msgstr "Bildschirm"
+
+#: src/window.rs:168
+msgid "Let the display sleep"
+msgstr "Ruhezustand des Displays erlauben"
+
+#: src/window.rs:171
+msgid "Turn off when the screen locks"
+msgstr "Ausschalten, wenn der Bildschirm gesperrt wird"
+
+#: src/window.rs:175
+msgid "Menu Bar"
+msgstr "Menüleiste"
+
+#: src/window.rs:176
+msgid "Show the time left"
+msgstr "Verbleibende Zeit anzeigen"
+
+#. Translators: the header of the rows Below 20% battery, In Low Power Mode, When unplugged.
+#: src/window.rs:188
+msgid "Turn Off Keep Awake"
+msgstr "Wachhalten beenden"
+
+#: src/window.rs:189
+#, rust-format
+msgid "Below {percent}% battery"
+msgstr "Unter {percent} % Batterie"
+
+#. Translators: the battery slider's ticks: 10%, 50%, 90%.
+#: src/window.rs:198
+#, rust-format
+msgid "{percent}%"
+msgstr "{percent} %"
+
+#: src/window.rs:201
+msgid "Battery level"
+msgstr "Batteriestand"
+
+#: src/window.rs:209
+msgid "In Low Power Mode"
+msgstr "Im Stromsparmodus"
+
+#: src/window.rs:213
+msgid "When unplugged"
+msgstr "Ohne Netzteil"
+
+#: src/window.rs:227
+#, rust-format
+msgid "Version {version}"
+msgstr "Version {version}"
+
+#: src/window.rs:228
+msgid "Keeps your Mac awake from the menu bar."
+msgstr "Hält deinen Mac über die Menüleiste wach."
+
+#: src/window.rs:243
+msgid "Donate"
+msgstr "Spenden"
+
+#: src/window.rs:257
+msgid "Acknowledgements"
+msgstr "Danksagungen"
+
+#: src/window.rs:277
+msgid "Check for Updates"
+msgstr "Nach Updates suchen"
+
+#: src/window.rs:280
+msgid "Checking for updates…"
+msgstr "Suche nach Updates…"
+
+#: src/window.rs:281
+#, rust-format
+msgid "{name} is up to date."
+msgstr "{name} ist auf dem neuesten Stand."
+
+#: src/window.rs:283
+#, rust-format
+msgid "{name} {version} is available."
+msgstr "{name} {version} ist verfügbar."
+
+#: src/window.rs:284
+msgid "Install and Relaunch"
+msgstr "Installieren und neu starten"
+
+#: src/window.rs:286
+#, rust-format
+msgid "Downloading the update… {done}%"
+msgstr "Update wird geladen… {done} %"
+
+#: src/window.rs:289 src/window.rs:296
+#, rust-format
+msgid "The update failed: {why}"
+msgstr "Das Update ist fehlgeschlagen: {why}"
+
+#: src/window.rs:290
+#, rust-format
+msgid "Couldn't check for updates: {why}"
+msgstr "Suche nach Updates fehlgeschlagen: {why}"
+
+#: src/window.rs:293
+msgid "Try Again"
+msgstr "Erneut versuchen"

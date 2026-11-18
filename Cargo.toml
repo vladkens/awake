@@ -16,10 +16,13 @@ comment = "Keeps the Mac awake from the menu bar"
 [package.metadata.shipo.macos]
 accessory = true
 plist.LSMinimumSystemVersion = "13.0"
+# The languages of locales/: macOS lists the app under them in System Settings › General ›
+# Language & Region › Applications, where a person picks its language.
+plist.CFBundleLocalizations = ["en", "de", "es", "fr", "it", "ja", "ko", "pl", "pt-BR", "ru", "tr", "uk", "zh-Hans"]
 
 [dependencies]
 block2 = "0.6.2"
-nimbo = { version = "0.0.1", git = "https://github.com/vladkens/nimbo", rev = "063cc81" }
+nimbo = { version = "0.0.1", git = "https://github.com/vladkens/nimbo", rev = "0e09b17" }
 objc2 = "0.6.5"
 objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSImage", "NSBitmapImageRep", "NSImageRep", "NSGraphicsContext", "NSGraphics", "NSWorkspace"] }
 objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFArray", "CFRunLoop", "CFString", "CFNotificationCenter"] }
