@@ -12,12 +12,13 @@ use objc2::rc::Retained;
 use objc2::runtime::{AnyObject, NSObjectProtocol, ProtocolObject};
 use objc2_app_kit::{NSWorkspace, NSWorkspaceDidWakeNotification};
 use objc2_core_foundation::{
-  CFDictionary, CFRetained, CFRunLoop, CFRunLoopSource, CFString, CFType, kCFRunLoopCommonModes,
+  CFDictionary, CFNotificationCenter, CFNotificationName, CFNotificationSuspensionBehavior,
+  CFRetained, CFRunLoop, CFRunLoopSource, CFString, CFType, kCFRunLoopCommonModes,
 };
 use objc2_foundation::{
-  NSDictionary, NSDistributedNotificationCenter, NSNotification, NSNotificationCenter,
-  NSNotificationName, NSNumber, NSOperationQueue, NSProcessInfo,
-  NSProcessInfoPowerStateDidChangeNotification, NSString, NSSystemClockDidChangeNotification,
+  NSDictionary, NSNotification, NSNotificationCenter, NSNotificationName, NSNumber,
+  NSOperationQueue, NSProcessInfo, NSProcessInfoPowerStateDidChangeNotification, NSString,
+  NSSystemClockDidChangeNotification,
 };
 use objc2_io_kit::{
   IOPMAssertionCreateWithName, IOPMAssertionID, IOPMAssertionRelease, IOPSCopyPowerSourcesInfo,
@@ -144,6 +145,9 @@ thread_local! {
   static ON: OnceCell<fn(Change)> = const { OnceCell::new() };
 }
 
+/// The lock's observer in the distributed center, by its address.
+static LOCK: u8 = 0;
+
 /// Calls `on` on the main thread with every [`Change`]; the first call wins.
 pub fn watch(on: fn(Change)) -> Option<Watch> {
   ON.with(|cell| cell.set(on).ok())?;
@@ -160,18 +164,41 @@ pub fn watch(on: fn(Change)) -> Option<Watch> {
   // SAFETY: a static of the framework.
   CFRunLoop::main()?.add_source(Some(&source), unsafe { kCFRunLoopCommonModes });
 
+  unsafe extern "C-unwind" fn locked(
+    _: *mut CFNotificationCenter,
+    _: *mut c_void,
+    _: *const CFNotificationName,
+    _: *const c_void,
+    _: *const CFDictionary,
+  ) {
+    if let Some(on) = ON.with(|cell| cell.get().copied()) {
+      on(Change::Locked);
+    }
+  }
+
+  // loginwindow's, in no SDK header. AppKit suspends the distributed center's delivery while the
+  // app isn't active, and an accessory app nearly never is: this one asks for it at once.
+  let name = CFString::from_static_str("com.apple.screenIsLocked");
+  // SAFETY: the observer is a static's address; the callback runs on the main thread's run loop,
+  // where `ON` is the app's.
+  unsafe {
+    CFNotificationCenter::distributed_center()?.add_observer(
+      &raw const LOCK as *const c_void,
+      Some(locked),
+      Some(&name),
+      std::ptr::null(),
+      CFNotificationSuspensionBehavior::DeliverImmediately,
+    );
+  }
+
   let (center, workspace) =
     (NSNotificationCenter::defaultCenter(), NSWorkspace::sharedWorkspace().notificationCenter());
-  let distributed = NSDistributedNotificationCenter::defaultCenter().into_super();
-  // loginwindow's, in no SDK header.
-  let locked = NSString::from_str("com.apple.screenIsLocked");
   // SAFETY: statics of the frameworks.
   let observers = unsafe {
     vec![
       observe(center.clone(), NSProcessInfoPowerStateDidChangeNotification, Change::LowPowerMode),
       observe(center, NSSystemClockDidChangeNotification, Change::Clock),
       observe(workspace, NSWorkspaceDidWakeNotification, Change::Woke),
-      observe(distributed, &locked, Change::Locked),
     ]
   };
 
@@ -210,6 +237,11 @@ impl Drop for Watch {
     for (center, token) in &self.observers {
       // SAFETY: a token of this center.
       unsafe { center.removeObserver(token.as_ref()) };
+    }
+
+    if let Some(center) = CFNotificationCenter::distributed_center() {
+      // SAFETY: the observer added in `watch`.
+      unsafe { center.remove_every_observer(&raw const LOCK as *const c_void) };
     }
   }
 }
