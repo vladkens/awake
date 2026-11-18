@@ -10,7 +10,8 @@ prepare:
 
 check:
 	cargo +nightly fmt --check
-	$(LINT) -- $(CARGO_FLAGS)
+	cargo clippy $(CARGO_FLAGS) --all-targets -- -D warnings
+	$(LINT)
 
 test:
 	cargo test $(CARGO_FLAGS)
