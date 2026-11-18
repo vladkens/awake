@@ -11,6 +11,7 @@ Keeps your Mac awake from the menu bar, like [KeepingYouAwake](https://github.co
 - Battery rules: turn off below a battery level (10–90 %), in Low Power Mode, or when unplugged. A session turned on by hand while a rule applies stays on until its cause clears.
 - Launch at login, and keep awake at launch.
 - Settings… in the menu, or open the app again, to get the settings window.
+- Updates itself from the releases here: checked once a day, Update to … in the menu installs it and relaunches; About has Check for Updates.
 - Idle at 0 % CPU: the battery, Low Power Mode, wake and the screen lock come as notifications, nothing polls.
 
 ## 📥 Install
