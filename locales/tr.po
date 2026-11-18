@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Awake\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-18 10:21+0200\n"
+"POT-Creation-Date: 2026-11-18 12:11+0200\n"
 "PO-Revision-Date: 2026-11-18 10:00+0200\n"
 "Last-Translator: \n"
 "Language-Team: none\n"
@@ -14,124 +14,229 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: src/main.rs:164
+#: src/main.rs:170
 msgid "Keep Awake For"
 msgstr "Şu süre uyanık tut"
 
-#: src/main.rs:168
+#: src/main.rs:172
 msgid "Settings…"
 msgstr "Ayarlar…"
 
-#: src/main.rs:169
+#: src/main.rs:175
 #, rust-format
 msgid "Quit {name}"
 msgstr "{name} uygulamasından çık"
 
-#: src/main.rs:179
+#: src/main.rs:184
 #, rust-format
-msgid "Update to {version}"
-msgstr "{version} sürümüne güncelle"
+msgid "Update Available: {version}…"
+msgstr "Güncelleme var: {version}…"
 
-#: src/main.rs:183
+#: src/main.rs:185
 #, rust-format
-msgid "Downloading {version}… {done}%"
-msgstr "{version} indiriliyor… %{done}"
+msgid "Downloading Update: {done}%"
+msgstr "Güncelleme indiriliyor: %{done}"
+
+#: src/main.rs:186
+msgid "Restarting to Update…"
+msgstr "Güncellemek için yeniden başlatılıyor…"
 
 #: src/main.rs:187
-#, rust-format
-msgid "Retry Update to {version}"
-msgstr "{version} güncellemesini yeniden dene"
+msgid "Update Failed…"
+msgstr "Güncelleme başarısız…"
 
-#: src/main.rs:203
+#: src/main.rs:197
+msgid "Checking for Updates…"
+msgstr "Güncellemeler denetleniyor…"
+
+#: src/main.rs:198 src/window.rs:240
+msgid "Check for Updates…"
+msgstr "Güncellemeleri denetle…"
+
+#: src/main.rs:209
 msgid "Keep Awake Indefinitely"
 msgstr "Süresiz uyanık tut"
 
-#: src/main.rs:203
+#: src/main.rs:209
 msgid "Turn Off"
 msgstr "Kapat"
 
-#: src/main.rs:209
+#: src/main.rs:215
 #, rust-format
 msgid "{n} Minute"
 msgid_plural "{n} Minutes"
 msgstr[0] "{n} dakika"
 msgstr[1] "{n} dakika"
 
-#: src/main.rs:210
+#: src/main.rs:216
 #, rust-format
 msgid "{n} Hour"
 msgid_plural "{n} Hours"
 msgstr[0] "{n} saat"
 msgstr[1] "{n} saat"
 
-#: src/main.rs:628
+#: src/main.rs:720
 #, rust-format
 msgid "Keeping awake despite {why}"
 msgstr "Uyanık tutuluyor, şuna rağmen: {why}"
 
-#: src/main.rs:629 src/main.rs:637
+#: src/main.rs:721 src/main.rs:729
 msgid "Keeping awake"
 msgstr "Uyanık tutuluyor"
 
 #. Translators: {time} is a clock counting down: 59:42, 2:59:42.
-#: src/main.rs:634
+#: src/main.rs:726
 #, rust-format
 msgid "{time} left"
 msgstr "{time} kaldı"
 
 #. Translators: the menu's first line after the app turned off by itself, before why.
-#: src/main.rs:639
+#: src/main.rs:731
 msgid "Turned off"
 msgstr "Kapatıldı"
 
 #. Translators: the menu's first line while nothing keeps the Mac awake.
-#: src/main.rs:641
+#: src/main.rs:733
 msgid "Off"
 msgstr "Kapalı"
 
 #. Translators: {names} are the command line's holds, by the names it gave them.
-#: src/main.rs:650
+#: src/main.rs:742
 #, rust-format
 msgid "for {names}"
 msgstr "{names} için"
 
-#: src/main.rs:653 src/main.rs:1082
+#: src/main.rs:745 src/main.rs:1206
 #, rust-format
 msgid "not for {names}: {why}"
 msgstr "{names} için değil: {why}"
 
 #. Translators: why the Mac can't stay awake, after "Turned off ·" and in "Keeping awake
 #. despite {why}"; these and the next ones.
-#: src/main.rs:784
+#: src/main.rs:882
 msgid "Low Power Mode"
 msgstr "Düşük Güç Modu"
 
-#: src/main.rs:785
+#: src/main.rs:883
 #, rust-format
 msgid "low battery ({percent}%)"
 msgstr "pil düşük (%{percent})"
 
-#: src/main.rs:786
+#: src/main.rs:884
 msgid "battery power"
 msgstr "pil gücü"
 
-#: src/main.rs:787
+#: src/main.rs:885
 msgid "screen locked"
 msgstr "ekran kilitli"
 
-#: src/main.rs:788
+#: src/main.rs:886
 msgid "the system refused"
 msgstr "sistem reddetti"
 
-#: src/main.rs:796
+#: src/main.rs:894
 #, rust-format
 msgid "{name}: keeping awake"
 msgstr "{name}: uyanık tutuluyor"
 
-#: src/main.rs:798
+#: src/main.rs:896
 #, rust-format
 msgid "{name}: off"
 msgstr "{name}: kapalı"
+
+#: src/updater.rs:308
+msgid "Software Update"
+msgstr "Yazılım Güncelleme"
+
+#: src/updater.rs:338
+msgid "Checking for updates…"
+msgstr "Güncellemeler denetleniyor…"
+
+#: src/updater.rs:340
+msgid "You’re up to date!"
+msgstr "Güncelsiniz!"
+
+#: src/updater.rs:341
+#, rust-format
+msgid "{name} {current} is the newest version."
+msgstr "{name} {current} en yeni sürüm."
+
+#: src/updater.rs:344
+#, rust-format
+msgid "A new version of {name} is available!"
+msgstr "{name}’nun yeni bir sürümü var!"
+
+#: src/updater.rs:346
+#, rust-format
+msgid "{name} {new} is out, you have {current}. Install it now?"
+msgstr "{name} {new} çıktı, sizdeki {current}. Şimdi yüklensin mi?"
+
+#: src/updater.rs:352
+msgid "Downloading the update…"
+msgstr "Güncelleme indiriliyor…"
+
+#: src/updater.rs:354
+msgid "Installing the update…"
+msgstr "Güncelleme yükleniyor…"
+
+#: src/updater.rs:355
+#, rust-format
+msgid "{name} restarts as {new}."
+msgstr "{name}, {new} sürümüyle yeniden başlayacak."
+
+#: src/updater.rs:358
+msgid "The update failed"
+msgstr "Güncelleme başarısız oldu"
+
+#: src/updater.rs:360
+msgid "Couldn’t check for updates"
+msgstr "Güncellemeler denetlenemedi"
+
+#: src/updater.rs:380
+#, rust-format
+msgid "{size} MB"
+msgstr "{size} MB"
+
+#: src/updater.rs:382
+#, rust-format
+msgid "{done} of {total}"
+msgstr "{done} / {total}"
+
+#: src/updater.rs:391
+msgid "Release notes"
+msgstr "Sürüm notları"
+
+#: src/updater.rs:419
+msgid "Skip This Version"
+msgstr "Bu sürümü atla"
+
+#: src/updater.rs:422
+msgid "Remind Me Later"
+msgstr "Daha sonra hatırlat"
+
+#: src/updater.rs:423
+msgid "Install Update"
+msgstr "Güncellemeyi yükle"
+
+#: src/updater.rs:428
+msgid "Close"
+msgstr "Kapat"
+
+#: src/updater.rs:429
+msgid "Retry"
+msgstr "Yeniden dene"
+
+#: src/updater.rs:433
+msgid "OK"
+msgstr "Tamam"
+
+#: src/updater.rs:437
+msgid "Cancel"
+msgstr "Vazgeç"
+
+#: src/updater.rs:441
+msgid "Hide"
+msgstr "Gizle"
 
 #: src/window.rs:71
 msgid "General"
@@ -197,120 +302,79 @@ msgstr "Yalnızca Awake.app içinden çalışır."
 msgid "This Mac has no battery."
 msgstr "Bu Mac’in pili yok."
 
-#: src/window.rs:146
+#: src/window.rs:144
 msgid "Startup"
 msgstr "Başlangıç"
 
-#: src/window.rs:154
+#: src/window.rs:152
 msgid "Launch at login"
 msgstr "Girişte aç"
 
-#: src/window.rs:162
+#: src/window.rs:160
 msgid "Keep awake at launch"
 msgstr "Açılışta uyanık tut"
 
-#: src/window.rs:167
+#: src/window.rs:165
 msgid "Screen"
 msgstr "Ekran"
 
-#: src/window.rs:168
+#: src/window.rs:166
 msgid "Let the display sleep"
 msgstr "Ekranın uyumasına izin ver"
 
-#: src/window.rs:171
+#: src/window.rs:169
 msgid "Turn off when the screen locks"
 msgstr "Ekran kilitlenince kapat"
 
-#: src/window.rs:175
+#: src/window.rs:173
 msgid "Menu Bar"
 msgstr "Menü çubuğu"
 
-#: src/window.rs:176
+#: src/window.rs:174
 msgid "Show the time left"
 msgstr "Kalan süreyi göster"
 
 #. Translators: the header of the rows Below 20% battery, In Low Power Mode, When unplugged.
-#: src/window.rs:188
+#: src/window.rs:186
 msgid "Turn Off Keep Awake"
 msgstr "Uyanık tutmayı kapat"
 
-#: src/window.rs:189
+#: src/window.rs:187
 #, rust-format
 msgid "Below {percent}% battery"
 msgstr "Pil %{percent} altındayken"
 
 #. Translators: the battery slider's ticks: 10%, 50%, 90%.
-#: src/window.rs:198
+#: src/window.rs:196
 #, rust-format
 msgid "{percent}%"
 msgstr "%{percent}"
 
-#: src/window.rs:201
+#: src/window.rs:199
 msgid "Battery level"
 msgstr "Pil düzeyi"
 
-#: src/window.rs:209
+#: src/window.rs:207
 msgid "In Low Power Mode"
 msgstr "Düşük Güç Modu’ndayken"
 
-#: src/window.rs:213
+#: src/window.rs:211
 msgid "When unplugged"
 msgstr "Güç bağlantısı kesilince"
 
-#: src/window.rs:227
+#: src/window.rs:225
 #, rust-format
 msgid "Version {version}"
 msgstr "Sürüm {version}"
 
-#: src/window.rs:228
+#: src/window.rs:226
 msgid "Keeps your Mac awake from the menu bar."
 msgstr "Mac’inizi menü çubuğundan uyanık tutar."
 
-#: src/window.rs:243
+#: src/window.rs:235
 msgid "Donate"
 msgstr "Bağış yap"
 
-#: src/window.rs:257
+#: src/window.rs:248
 msgid "Acknowledgements"
 msgstr "Teşekkürler"
-
-#: src/window.rs:277
-msgid "Check for Updates"
-msgstr "Güncellemeleri denetle"
-
-#: src/window.rs:280
-msgid "Checking for updates…"
-msgstr "Güncellemeler denetleniyor…"
-
-#: src/window.rs:281
-#, rust-format
-msgid "{name} is up to date."
-msgstr "{name} güncel."
-
-#: src/window.rs:283
-#, rust-format
-msgid "{name} {version} is available."
-msgstr "{name} {version} kullanılabilir."
-
-#: src/window.rs:284
-msgid "Install and Relaunch"
-msgstr "Yükle ve yeniden başlat"
-
-#: src/window.rs:286
-#, rust-format
-msgid "Downloading the update… {done}%"
-msgstr "Güncelleme indiriliyor… %{done}"
-
-#: src/window.rs:289 src/window.rs:296
-#, rust-format
-msgid "The update failed: {why}"
-msgstr "Güncelleme başarısız oldu: {why}"
-
-#: src/window.rs:290
-#, rust-format
-msgid "Couldn't check for updates: {why}"
-msgstr "Güncellemeler denetlenemedi: {why}"
-
-#: src/window.rs:293
-msgid "Try Again"
-msgstr "Yeniden dene"

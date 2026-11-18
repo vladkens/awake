@@ -10,9 +10,10 @@ rustdoc (`src/main.rs` first), dependencies `Cargo.toml`, checks the `Makefile`.
 
 ## Scope
 
-- macOS only, Apple silicon and Intel, macOS 13+ (`SMAppService`). A menu bar app: the menu and
-  a settings window; a Dock icon only while the window is open. With arguments the binary is a
-  command line that asks the running app over a Unix socket (`src/cli.rs`).
+- macOS only, Apple silicon and Intel, macOS 13+ (`SMAppService`). A menu bar app: the menu, a
+  settings window and Sparkle's update window; a Dock icon only while a window is open. With
+  arguments the binary is a command line that asks the running app over a Unix socket
+  (`src/cli.rs`).
 - Pure Rust: the status item, its menu, the settings window and launch at login through nimbo;
   Foundation, IOKit and what nimbo lacks of AppKit (`src/appkit.rs`) through the `objc2-*` crates;
   no Swift, no C compiled, no bindings generated. Enable only the `objc2-*` features the code uses.

@@ -61,6 +61,6 @@ i18n: # the marked texts into target/messages.pot, merged into locales/*.po and 
 
 # LOCALE=ru (or pseudo, nimbo's accented and longer texts) draws them in that language, into
 # target/shots/<LOCALE>/.
-shots: # the settings window's pages and About's update states, headless, into target/shots/
+shots: # the settings window's pages and the update window's states, headless, into target/shots/
 	AWAKE_SHOTS=$(CURDIR)/target/shots$(if $(LOCALE),/$(LOCALE)) $(if $(LOCALE),AWAKE_SHOTS_LOCALE=$(LOCALE)) \
-	  cargo test $(CARGO_FLAGS) -- every_page_renders
+	  cargo test $(CARGO_FLAGS) -- every_page_renders every_state_renders

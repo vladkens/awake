@@ -1,15 +1,20 @@
 // Copyright (c) vladkens | MIT License | https://github.com/vladkens/awake
-//! Updates in place with [shipo]: a signed feed beside each release on GitHub. The app checks at
-//! launch, on wake and when the menu opens, once a day at most, and when the person asks in About.
-//! A newer release shows as a menu item, which downloads it and relaunches as the new version;
-//! About says how a check went. Where the app can't update (a build, a folder the person can't
-//! write, a dev build), none of it shows.
+//! Updates in place with [shipo]: a signed feed beside each release on GitHub, checked at launch,
+//! on wake and when the menu opens, once a day at most, and when the person asks. What the person
+//! sees is Sparkle's: a row at the top of the menu says what the [Updater] has, and it, Check for
+//! Updates… in the menu and About's open its window ([UpdateWindow]), which offers the release,
+//! shows the download, or why it failed. Nothing opens by itself: an update found waits in the
+//! menu. Where the app can't update (a build, a folder the person can't write, a dev build), none
+//! of it shows.
 //!
 //! The [Updater] is the state without the network: the app runs shipo's check, download and
 //! install on threads of its own and brings each result back to it.
 
 use std::time::{Duration, SystemTime};
 
+use nimbo::{
+  Align, Button, ButtonStyle, Config, Localized, Png, Style, TextStyle, Ui, grow, px, t,
+};
 use shipo::{Error, Feed, Release};
 
 /// `update.txt` beside the latest release's files, which CI's publish job writes and signs
@@ -28,9 +33,8 @@ pub const FEED: Feed = Feed::new(
 /// An automatic check once a day; one that got no answer is tried again at the next chance.
 const DAY: Duration = Duration::from_secs(24 * 60 * 60);
 
-/// A dev build's version, a pre-release (`0.1.0-5-gabc`, CI's between releases), which takes no
-/// update: shipo's [check](shipo::check) refuses it, and its [supported](shipo::supported) doesn't
-/// tell.
+/// A dev build's version, a pre-release (`v0.1.0-5-gabc`), which takes no update: shipo's
+/// [check](shipo::check) refuses it, and its [supported](shipo::supported) doesn't tell.
 pub fn dev(version: &str) -> bool {
   version.contains('-')
 }
@@ -45,11 +49,10 @@ pub fn found(checked: shipo::Result<Option<Release>>) -> Result<Option<Release>,
   })
 }
 
-/// An error's text as About shows it: a request's without its URL, which the log has, and an
-/// install's without its prefix, as About says the update failed.
+/// An error's text as the window shows it: a request's without its URL, which the log has.
 pub fn why(e: &Error) -> String {
   match e {
-    Error::Http { message, .. } | Error::Install(message) => message.clone(),
+    Error::Http { message, .. } => message.clone(),
     _ => e.to_string(),
   }
 }
@@ -64,65 +67,85 @@ pub fn percent(done: u64, total: u64) -> u8 {
   (done.saturating_mul(100) / total.max(1)).min(100) as u8
 }
 
-/// What the updater shows, in the menu and in About.
+// MARK: State
+
+/// What the updater shows, in its menu item and its window.
 #[derive(Clone, Debug, PartialEq)]
 pub enum State {
-  /// Nothing: no answer yet, or nothing newer from an automatic check.
+  /// Nothing: no answer yet, nothing newer, or the newer one put off or skipped.
   Idle,
   /// A check the person asked for runs; an automatic one shows nothing.
   Checking,
   /// The check the person asked for found nothing newer.
   UpToDate,
   Available(Release),
-  /// With the whole percent done; then the app relaunches as the new version.
+  /// With the whole percent done.
   Downloading(Release, u8),
+  /// Downloaded: its installer starts, and the new version once the app has quit.
+  Restarting(Release),
   /// Why the check, the download or the install failed: with the release when it was its
-  /// download or install, which trying again downloads; else trying again checks.
+  /// download or install, which Retry downloads again; else Retry checks again.
   Failed(Option<Release>, String),
-  /// Why the install that relaunched the app failed, shown even where the app can no longer
-  /// update; the check that finds the release again offers it as failed, to try again.
+  /// Why the update that started this app failed ([shipo::finish]): this one is the old version.
+  /// No automatic check runs until the person has seen it; Retry checks again.
   Relaunched(String),
+}
+
+impl State {
+  /// The release being downloaded or put in place.
+  fn busy(&self) -> bool {
+    matches!(self, State::Downloading(..) | State::Restarting(_))
+  }
 }
 
 /// The state, and when to check.
 #[derive(Debug)]
 pub struct Updater {
   pub state: State,
-  /// A check runs: whether the person asked for it.
+  /// A check runs: whether the person waits for it in the window.
   checking: Option<bool>,
   /// When a check last got an answer.
   answered: Option<SystemTime>,
   /// The app can't update itself: nothing shows and no check runs.
   off: bool,
+  /// The window is open: an offer taken back says so there.
+  shown: bool,
+  /// The release Remind Me Later put off, which the check running then doesn't offer again.
+  put_off: Option<String>,
 }
 
 impl Updater {
-  /// `on`: the app updates itself, as decided at launch.
+  /// `on`: the app updates itself, as decided at launch: shipo's [supported](shipo::supported)
+  /// and not a [dev] build, or shipo [faking](shipo::faking).
   pub fn new(on: bool) -> Self {
-    Self { state: State::Idle, checking: None, answered: None, off: !on }
+    Self {
+      state: State::Idle,
+      checking: None,
+      answered: None,
+      off: !on,
+      shown: false,
+      put_off: None,
+    }
   }
 
-  /// The app was relaunched by an install that failed, `why` ([why]).
-  pub fn relaunched(&mut self, why: String) {
-    self.state = State::Relaunched(why);
-  }
-
-  /// What the menu and About show, `None` when the app can't update and no install failed.
+  /// What the menu item and the window show, `None` when the app can't update, but the failed
+  /// update that started it.
   pub fn showing(&self) -> Option<&State> {
     (!self.off || matches!(self.state, State::Relaunched(_))).then_some(&self.state)
   }
 
   /// An automatic check: none answered yet, or the last a day before `now` (or after it, the clock
-  /// set back).
+  /// set back); none while a failed relaunch waits for the person to see it.
   pub fn due(&self, now: SystemTime) -> bool {
     let old = |t: SystemTime| now.duration_since(t).map_or(true, |d| d >= DAY);
-    !self.off && self.checking.is_none() && self.answered.is_none_or(old)
+    let relaunched = matches!(self.state, State::Relaunched(_));
+    !self.off && !relaunched && self.checking.is_none() && self.answered.is_none_or(old)
   }
 
   /// Whether to start a check: not while one runs, which the person's joins, or while an update is
   /// on its way. The person's shows Checking.
   pub fn check(&mut self, manual: bool) -> bool {
-    if self.off || matches!(self.state, State::Downloading(..)) {
+    if self.off || self.state.busy() {
       return false;
     }
 
@@ -131,43 +154,82 @@ impl Updater {
     }
 
     let start = self.checking.is_none();
+    if start {
+      self.put_off = None;
+    }
+
     self.checking = Some(manual || self.checking == Some(true));
     start
   }
 
-  /// A check's answer at `now` ([found]): the newer release, none, or why the check failed, which
-  /// is tried again at the next chance. Nothing newer and an error show only to the person who
-  /// asked; nothing newer takes back an offer the feed no longer makes, a failed one's too, and a
-  /// newer release replaces it.
-  pub fn checked(&mut self, found: Result<Option<Release>, String>, now: SystemTime) {
+  /// A menu item opened the window: whether to start a check, when there is nothing to show but
+  /// how one goes (a failure shows first, Retry checks).
+  pub fn open(&mut self) -> bool {
+    self.shown = true;
+    matches!(self.state, State::Idle | State::UpToDate) && self.check(true)
+  }
+
+  /// A check's answer at `now` ([found]). A newer release shows unless it is the version `skipped`
+  /// and nobody asked; nothing newer takes back an offer or a failed install, else shows only to
+  /// the person waiting in the window, as an error does.
+  pub fn checked(
+    &mut self,
+    found: Result<Option<Release>, String>,
+    skipped: Option<&str>,
+    now: SystemTime,
+  ) {
     let Some(manual) = self.checking.take() else { return };
     if found.is_ok() {
       self.answered = Some(now);
     }
 
-    if matches!(self.state, State::Downloading(..)) {
+    let failed = match &self.state {
+      State::Failed(Some(r), _) => Some(r.version.as_str()),
+      _ => None,
+    };
+
+    let moved = found.as_ref().is_ok_and(|r| r.as_ref().map(|r| r.version.as_str()) != failed);
+    if self.state.busy() || failed.is_some() && !moved && !manual {
       return;
     }
 
-    let offered = matches!(self.state, State::Available(_) | State::Failed(Some(_), _));
+    let offered = matches!(self.state, State::Available(_)) || failed.is_some();
     self.state = match found {
-      Ok(Some(r)) => match &self.state {
-        State::Relaunched(why) => State::Failed(Some(r), why.clone()),
-        _ => State::Available(r),
-      },
-      Ok(None) if manual => State::UpToDate,
-      Ok(None) if offered => State::Idle,
+      Ok(Some(r)) if manual || ![skipped, self.put_off.as_deref()].contains(&Some(&r.version)) => {
+        State::Available(r)
+      }
+      Ok(_) if manual || offered && self.shown => State::UpToDate,
+      Ok(_) if offered => State::Idle,
       Err(e) if manual => State::Failed(None, e),
       _ => return,
     };
   }
 
-  /// Install, or try again after a failed download or install: the release to download.
+  /// Install, or Retry after a failed download or install: the release to download.
   pub fn install(&mut self) -> Option<Release> {
     let (State::Available(r) | State::Failed(Some(r), _)) = &self.state else { return None };
     let r = r.clone();
     self.state = State::Downloading(r.clone(), 0);
     Some(r)
+  }
+
+  /// Remind Me Later: the next daily check offers it again.
+  pub fn later(&mut self) {
+    if let State::Available(r) | State::Failed(Some(r), _) = &self.state {
+      self.put_off = Some(r.version.clone());
+    }
+
+    if matches!(self.state, State::Available(_) | State::Failed(..) | State::Relaunched(_)) {
+      self.state = State::Idle;
+    }
+  }
+
+  /// Skip This Version: the version to save, which automatic checks pass over from then on.
+  pub fn skip(&mut self) -> Option<String> {
+    let State::Available(r) = &self.state else { return None };
+    let version = r.version.clone();
+    self.state = State::Idle;
+    Some(version)
   }
 
   /// The download's whole percent ([percent]).
@@ -177,22 +239,244 @@ impl Updater {
     }
   }
 
+  pub fn downloaded(&mut self) {
+    if let State::Downloading(r, _) = &self.state {
+      self.state = State::Restarting(r.clone());
+    }
+  }
+
   /// The download or the install failed, `why`.
   pub fn failed(&mut self, why: String) {
-    if let State::Downloading(r, _) = &self.state {
+    if let State::Downloading(r, _) | State::Restarting(r) = &self.state {
       self.state = State::Failed(Some(r.clone()), why);
+    }
+  }
+
+  /// The update that started this app failed, `why` ([shipo::finish]).
+  pub fn relaunched(&mut self, why: String) {
+    self.state = State::Relaunched(why);
+  }
+
+  /// The window closed: what it said about a check or a relaunch is done with, and a check the
+  /// person waited for goes on quietly; a release on offer or on its way, or its failure, stays in
+  /// the menu.
+  pub fn closed(&mut self) {
+    self.shown = false;
+    if self.checking == Some(true) {
+      self.checking = Some(false);
+    }
+
+    let said = matches!(self.state, State::Failed(None, _) | State::Relaunched(_));
+    if said || matches!(self.state, State::Checking | State::UpToDate) {
+      self.state = State::Idle;
     }
   }
 }
 
+// MARK: Window
+
+/// The ids of the window's controls.
+const INSTALL: &str = "update-install";
+const LATER: &str = "update-later";
+const SKIP: &str = "update-skip";
+const NOTES: &str = "update-notes";
+const RETRY: &str = "update-retry";
+const CLOSE: &str = "update-close";
+
+/// The app's icon beside the text: 128 px, 64 points at 2x.
+const ICON: Png = Png::new(include_bytes!("../assets/icon.png")).side(128);
+
+/// What the person chose in the window.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Act {
+  Install,
+  /// The download again, or the check when it was the check that failed.
+  Retry,
+  /// Remind Me Later.
+  Later,
+  /// Skip This Version.
+  Skip,
+  /// The release's notes, its `notes` page, which the app opens.
+  Notes,
+  /// OK, Cancel, Hide: the window closes.
+  Close,
+}
+
+/// The update's window: a fixed size.
+pub fn config() -> Config {
+  // The title of the window that offers an update, as macOS apps name it.
+  Config::new(t!("Software Update").as_str(), 500.0, 196.0).fixed().localizations(crate::LOCALES)
+}
+
+/// The update's window, showing the [Updater]'s state as the app last gave it: what the person
+/// chooses goes to `chosen`, which the app takes from the loop.
+pub struct UpdateWindow {
+  pub state: State,
+  chosen: Box<dyn Fn(Act)>,
+}
+
+impl UpdateWindow {
+  pub fn new(state: State, chosen: impl Fn(Act) + 'static) -> Self {
+    Self { state, chosen: Box::new(chosen) }
+  }
+}
+
+impl nimbo::App for UpdateWindow {
+  fn view(&mut self, ui: &mut Ui) {
+    if let Some(act) = view(ui, &self.state) {
+      (self.chosen)(act);
+    }
+  }
+}
+
+/// The window's content for `state`: the app's icon, what goes on and its buttons, along the
+/// bottom as Sparkle's; what the person chose.
+fn view(ui: &mut Ui, state: &State) -> Option<Act> {
+  let t = ui.theme();
+  let (name, current) = (crate::INFO.name, shown(crate::VERSION));
+  let (title, text) = match state {
+    State::Idle | State::Checking => (t!("Checking for updates…").to_string(), String::new()),
+    State::UpToDate => (
+      t!("You’re up to date!").to_string(),
+      t!("{name} {current} is the newest version.", name, current),
+    ),
+    State::Available(r) => (
+      t!("A new version of {name} is available!", name),
+      t!(
+        "{name} {new} is out, you have {current}. Install it now?",
+        name,
+        new = shown(&r.version),
+        current
+      ),
+    ),
+    State::Downloading(..) => (t!("Downloading the update…").to_string(), String::new()),
+    State::Restarting(r) => (
+      t!("Installing the update…").to_string(),
+      t!("{name} restarts as {new}.", name, new = shown(&r.version)),
+    ),
+    State::Failed(Some(_), why) | State::Relaunched(why) => {
+      (t!("The update failed").to_string(), sentence(why))
+    }
+    State::Failed(None, why) => (t!("Couldn’t check for updates").to_string(), sentence(why)),
+  };
+
+  let mut act = None;
+  let page = Style::new().grow().pads([20.0, 20.0, 16.0, 20.0]).gap(12.0).bg(t.bg);
+  ui.col(page, |ui| {
+    ui.row(Style::new().w(grow()).gap(16.0), |ui| {
+      ui.image(ICON, Style::new().w(px(64.0)).h(px(64.0)));
+      ui.col(Style::new().w(grow()).gap(6.0), |ui| {
+        ui.text(&title, TextStyle::new(t.bold, t.text).line_limit(1));
+        if !text.is_empty() {
+          ui.text(&text, t.body());
+        }
+
+        match state {
+          State::Downloading(r, done) => {
+            ui.el(Style::new().h(px(2.0)));
+            ui.progress(Some(f32::from(*done) / 100.0));
+
+            if r.size > 0 {
+              let mb = |b: u64| t!("{size} MB", size = format!("{:.1}", b as f64 / 1e6));
+              let done = mb(r.size * u64::from(*done) / 100);
+              let of = t!("{done} of {total}", done, total = mb(r.size));
+              ui.text(&of, t.muted());
+            }
+          }
+          State::Idle | State::Checking | State::Restarting(_) => {
+            ui.el(Style::new().h(px(2.0)));
+            ui.progress(None);
+          }
+          State::Available(r) if r.notes.is_some() => {
+            if ui.id(NOTES).link(&t!("Release notes")).clicked {
+              act = Some(Act::Notes);
+            }
+          }
+          State::Available(_) | State::UpToDate | State::Failed(..) | State::Relaunched(_) => {}
+        }
+      });
+    });
+
+    ui.spacer();
+    // Under the text and the icon, the window's width: Sparkle's bar.
+    let bar = Style::new().w(grow()).gap(8.0).align(Align::Start, Align::Center);
+    ui.row(bar, |ui| {
+      let mut button = |ui: &mut Ui, id, label: Localized, then, primary| {
+        let label = label.as_str();
+        let b = if primary {
+          Button::new(label).style(ButtonStyle::BorderedProminent)
+        } else {
+          Button::new(label)
+        };
+
+        if b.show(ui.id(id)).clicked {
+          act = Some(then);
+        }
+      };
+
+      match state {
+        State::Available(_) => {
+          button(ui, SKIP, t!("Skip This Version"), Act::Skip, false);
+          ui.spacer();
+
+          button(ui, LATER, t!("Remind Me Later"), Act::Later, false);
+          button(ui, INSTALL, t!("Install Update"), Act::Install, true);
+        }
+        State::Failed(..) | State::Relaunched(_) => {
+          ui.spacer();
+
+          button(ui, CLOSE, t!("Close"), Act::Close, false);
+          button(ui, RETRY, t!("Retry"), Act::Retry, true);
+        }
+        State::UpToDate => {
+          ui.spacer();
+          button(ui, CLOSE, t!("OK"), Act::Close, true);
+        }
+        State::Idle | State::Checking => {
+          ui.spacer();
+          button(ui, CLOSE, t!("Cancel"), Act::Close, false);
+        }
+        State::Downloading(..) | State::Restarting(_) => {
+          ui.spacer();
+          button(ui, CLOSE, t!("Hide"), Act::Close, false);
+        }
+      }
+    });
+  });
+
+  act
+}
+
+/// An error's text as a sentence: its first letter capital.
+fn sentence(s: &str) -> String {
+  let mut chars = s.chars();
+  chars.next().map(|c| c.to_uppercase().chain(chars).collect()).unwrap_or_default()
+}
+
 #[cfg(test)]
 mod tests {
+  use std::cell::RefCell;
+  use std::path::PathBuf;
+  use std::rc::Rc;
+
+  use nimbo::{Appearance, Event, Harness, Id, Locale, harness};
+
   use super::*;
 
   const NOW: SystemTime = SystemTime::UNIX_EPOCH;
+  /// macOS' text for a request with no network.
+  const OFFLINE: &str = "The Internet connection appears to be offline.";
 
   fn r(v: &str) -> Release {
     Release::test(v)
+  }
+
+  /// A release as the feed gives it: its notes' page and its size.
+  fn release(v: &str) -> Release {
+    let mut r = r(v);
+    r.notes = Some(format!("https://github.com/vladkens/awake/releases/tag/{}", shown(v)));
+    r.size = 50_000_000;
+    r
   }
 
   fn newer(v: &str) -> Result<Option<Release>, String> {
@@ -204,15 +488,20 @@ mod tests {
   }
 
   /// `u` after an automatic or a manual check answered `found`.
-  fn checked(u: &mut Updater, manual: bool, found: Result<Option<Release>, String>) {
+  fn checked(
+    u: &mut Updater,
+    manual: bool,
+    found: Result<Option<Release>, String>,
+    skipped: Option<&str>,
+  ) {
     assert!(u.check(manual));
-    u.checked(found, NOW);
+    u.checked(found, skipped, NOW);
   }
 
   #[test]
   fn a_dev_build_takes_no_update() {
-    assert!(dev("0.1.0-5-gabc") && dev("1.2.0-rc.1"));
-    assert!(!dev("0.1.0") && !dev("1.2.0"));
+    assert!(dev("v0.1.0-5-gabc") && dev("1.2.0-rc.1"));
+    assert!(!dev("v0.1.0") && !dev("1.2.0"));
   }
 
   /// A missing feed is nothing newer; another error shows its text, a bad feed's too.
@@ -230,17 +519,23 @@ mod tests {
       assert!(found(Err(e)).is_err_and(|e| e.starts_with(want)), "{want}");
     }
 
-    let didnt_start = Error::Install("the new version didn't start".into());
-    assert_eq!(why(&didnt_start), "the new version didn't start");
-    let offline = "The Internet connection appears to be offline.";
-    assert_eq!(found(Err(http(None, offline))), Err(offline.into()));
-    assert_eq!(found(Err(http(Some(503), "HTTP 503"))), Err("HTTP 503".into()));
+    let errors = [
+      (http(Some(503), "HTTP 503"), "HTTP 503".into()),
+      (http(None, OFFLINE), OFFLINE.into()),
+      (Error::Keys, "the app has no public key for its feed, or a malformed one".into()),
+      (Error::Unsupported("no libcurl".into()), "can't update in place: no libcurl".into()),
+    ];
+    for (e, text) in errors {
+      assert_eq!(found(Err(e)), Err(text));
+    }
+
     assert_eq!(found(Ok(Some(r("1.2.0")))), newer("1.2.0"));
+    assert_eq!(found(Ok(None)), Ok(None));
   }
 
   #[test]
   fn the_feed_has_valid_keys() {
-    assert!(FEED.url.starts_with("https://") && FEED.keys.len() == 2);
+    assert!(FEED.url.starts_with("https://") && !FEED.keys.is_empty());
     for key in FEED.keys {
       assert!(key.len() == 64 && key.bytes().all(|b| b.is_ascii_hexdigit()), "{key}");
     }
@@ -262,116 +557,321 @@ mod tests {
     assert!(u.due(NOW), "at launch");
     assert!(u.check(false));
     assert!(!u.due(NOW) && !u.check(false), "one at a time");
-    u.checked(error(), NOW);
-    assert!(u.due(NOW), "no answer: again at the next chance");
+    u.checked(error(), None, NOW);
+    assert!(u.due(NOW), "no answer: again at the next tick");
 
-    checked(&mut u, false, Ok(None));
+    checked(&mut u, false, Ok(None), None);
     assert!(!u.due(NOW + DAY - Duration::from_secs(1)) && u.due(NOW + DAY));
     assert!(u.due(NOW - Duration::from_secs(1)), "the clock set back");
   }
 
+  /// An app that can't update shows nothing and checks nothing; one that can shows a failed check
+  /// the person asked for.
   #[test]
   fn an_app_that_cant_update_shows_nothing() {
     let mut u = Updater::new(false);
     assert_eq!(u.showing(), None);
-    assert!(!u.due(NOW) && !u.check(true));
+    assert!(!u.due(NOW) && !u.check(true) && !u.open());
 
-    let mut u = Updater::new(false);
-    u.relaunched("the new version didn't start".into());
-    assert!(matches!(u.showing(), Some(State::Relaunched(_))), "its failed install does");
-
-    let u = Updater::new(true);
+    let mut u = Updater::new(true);
     assert_eq!(u.showing(), Some(&State::Idle));
+    checked(&mut u, true, error(), None);
+    assert_eq!(u.showing(), Some(&State::Failed(None, "offline".into())));
+
+    // The update that started it took away what updating needs: the failure shows until seen.
+    let mut u = Updater::new(false);
+    u.relaunched("no write access".into());
+    assert_eq!(u.showing(), Some(&State::Relaunched("no write access".into())));
+    assert!(!u.open() && !u.check(true), "Retry closes");
+    u.closed();
+    assert_eq!(u.showing(), None);
   }
 
   #[test]
   fn an_automatic_check_shows_only_what_is_new() {
     let mut u = Updater::new(true);
-    checked(&mut u, false, Ok(None));
-    checked(&mut u, false, error());
-    assert_eq!(u.state, State::Idle, "nothing new, offline: quiet");
+    checked(&mut u, false, Ok(None), None);
+    checked(&mut u, false, error(), None);
+    checked(&mut u, false, newer("1.2.0"), Some("1.2.0"));
+    assert_eq!(u.state, State::Idle, "nothing new, offline, skipped: quiet");
 
-    checked(&mut u, false, newer("1.2.0"));
-    assert_eq!(u.state, State::Available(r("1.2.0")));
-    checked(&mut u, false, error());
-    assert_eq!(u.state, State::Available(r("1.2.0")), "offline: the offer stays");
-    checked(&mut u, false, Ok(None));
+    checked(&mut u, false, newer("1.3.0"), Some("1.2.0"));
+    assert_eq!(u.state, State::Available(r("1.3.0")));
+
+    u.later();
+    assert_eq!(u.state, State::Idle);
+    checked(&mut u, false, newer("1.3.0"), Some("1.2.0"));
+    assert_eq!(u.state, State::Available(r("1.3.0")), "put off until the next check");
+    assert!(u.check(false));
+    u.later();
+    u.checked(newer("1.3.0"), None, NOW);
+    assert_eq!(u.state, State::Idle, "not by the check running then");
+
+    checked(&mut u, false, newer("1.3.0"), None);
+    checked(&mut u, false, error(), None);
+    assert_eq!(u.state, State::Available(r("1.3.0")), "offline: the offer stays");
+    checked(&mut u, false, Ok(None), None);
     assert_eq!(u.state, State::Idle, "the feed took it back");
+
+    checked(&mut u, false, newer("1.3.0"), None);
+    assert_eq!(u.skip().as_deref(), Some("1.3.0"));
+    assert_eq!((u.state.clone(), u.skip()), (State::Idle, None));
+  }
+
+  /// The menu item opens the window with a check when there is nothing else to show; the check
+  /// says how it went until the window closes.
+  #[test]
+  fn opening_the_window_checks_and_says_how_it_went() {
+    let mut u = Updater::new(true);
+    assert!(u.open());
+    assert_eq!(u.state, State::Checking);
+    u.checked(Ok(None), None, NOW);
+    assert_eq!(u.state, State::UpToDate);
+    u.closed();
+    assert_eq!(u.state, State::Idle);
+
+    // An error shows, Retry checks again.
+    assert!(u.open());
+    u.checked(error(), None, NOW);
+    assert_eq!(u.state, State::Failed(None, "offline".into()));
+    assert!(!u.open(), "the failure shows first");
+    assert_eq!(u.install(), None, "nothing to download: Retry checks again");
+    assert!(u.check(true));
+
+    u.checked(newer("1.2.0"), Some("1.2.0"), NOW);
+    assert_eq!(u.state, State::Available(r("1.2.0")), "asked, a skipped one shows too");
+    assert!(!u.open(), "the offer shows as it is");
+    u.closed();
+    assert_eq!(u.state, State::Available(r("1.2.0")), "the menu keeps it");
+  }
+
+  /// The window closed during the person's check: it goes on quietly.
+  #[test]
+  fn a_check_left_goes_on_quietly() {
+    let mut u = Updater::new(true);
+    assert!(u.open());
+    u.closed();
+    assert_eq!(u.state, State::Idle);
+    assert!(!u.check(false), "it still runs");
+    u.checked(Ok(None), None, NOW);
+    assert_eq!(u.state, State::Idle, "nothing newer: quiet");
+
+    assert!(u.open());
+    u.closed();
+    u.checked(newer("1.2.0"), None, NOW);
+    assert_eq!(u.state, State::Available(r("1.2.0")), "a release still shows in the menu");
   }
 
   #[test]
-  fn the_persons_check_says_how_it_went() {
-    let mut u = Updater::new(true);
-    assert!(u.check(true));
-    assert_eq!(u.state, State::Checking);
-    u.checked(Ok(None), NOW);
-    assert_eq!(u.state, State::UpToDate);
-
-    checked(&mut u, true, error());
-    assert_eq!(u.state, State::Failed(None, "offline".into()));
-    assert_eq!(u.install(), None, "nothing to download: trying again checks");
-    checked(&mut u, true, newer("1.2.0"));
-    assert_eq!(u.state, State::Available(r("1.2.0")));
-
-    // The person's joins an automatic one.
+  fn the_persons_check_joins_an_automatic_one() {
     let mut u = Updater::new(true);
     assert!(u.check(false));
-    assert!(!u.check(true), "no second thread");
+    assert!(!u.open(), "no second thread");
     assert_eq!(u.state, State::Checking);
-    u.checked(Ok(None), NOW);
+    u.checked(Ok(None), None, NOW);
     assert_eq!(u.state, State::UpToDate);
   }
 
   #[test]
-  fn an_install_downloads_or_fails_and_tries_again() {
+  fn an_install_downloads_restarts_or_fails_with_retry() {
     let mut u = Updater::new(true);
     assert_eq!(u.install(), None);
-    checked(&mut u, false, newer("1.2.0"));
+    checked(&mut u, false, newer("1.2.0"), None);
     assert_eq!(u.install(), Some(r("1.2.0")));
     assert_eq!(u.state, State::Downloading(r("1.2.0"), 0));
-    assert!(!u.check(true) && !u.check(false), "no check while it downloads");
+    assert!(!u.check(true) && !u.check(false) && !u.open(), "no check while it downloads");
     u.progress(percent(41_990, 100_000));
     assert_eq!(u.state, State::Downloading(r("1.2.0"), 41));
+    u.closed();
+    assert_eq!(u.state, State::Downloading(r("1.2.0"), 41), "hidden, it goes on");
 
     let e = "1.2.0 is not the file";
     u.failed(e.into());
     let failed = State::Failed(Some(r("1.2.0")), e.into());
     assert_eq!(u.state, failed);
-    checked(&mut u, false, error());
-    assert_eq!(u.state, failed, "offline: the failure stays");
-    assert_eq!(u.install(), Some(r("1.2.0")), "trying again");
 
+    checked(&mut u, false, newer("1.2.0"), None);
+    assert_eq!(u.state, failed, "an automatic check leaves the failure be");
+    checked(&mut u, false, error(), None);
+    assert_eq!(u.state, failed, "offline too");
+    assert_eq!(u.install(), Some(r("1.2.0")), "Retry");
+    u.downloaded();
+    assert_eq!(u.state, State::Restarting(r("1.2.0")));
     u.failed(e.into());
-    checked(&mut u, false, newer("1.3.0"));
-    assert_eq!(u.state, State::Available(r("1.3.0")), "a newer one replaces it");
-    u.install();
-    u.failed(e.into());
-    checked(&mut u, false, Ok(None));
-    assert_eq!(u.state, State::Idle, "the feed took it back");
+    u.later();
+    assert_eq!(u.state, State::Idle, "a failure put off");
 
-    // Relaunched by a failed install: the release found again is offered to try again.
-    let mut u = Updater::new(true);
-    u.relaunched(e.into());
-    let relaunched = State::Relaunched(e.into());
-    assert_eq!(u.state, relaunched);
-
-    checked(&mut u, false, error());
-    checked(&mut u, false, Ok(None));
-    assert_eq!(u.state, relaunched, "offline, or the release withdrawn: it stays");
-    checked(&mut u, false, newer("1.2.0"));
-    assert_eq!(u.state, failed);
-
-    u.install();
-    u.failed(e.into());
-    checked(&mut u, false, newer("1.2.0"));
-    assert_eq!(u.state, State::Available(r("1.2.0")), "once");
+    // The update that started this app failed: Retry checks again.
+    u.relaunched("the new app did not start".into());
+    assert_eq!(u.state, State::Relaunched("the new app did not start".into()));
+    assert_eq!(u.install(), None);
+    u.later();
 
     // A check answered during the download leaves it be.
-    let mut u = Updater::new(true);
-    checked(&mut u, false, newer("1.2.0"));
+    checked(&mut u, false, newer("1.2.0"), None);
     assert!(u.check(false));
     u.install();
-    u.checked(newer("1.3.0"), NOW);
+    u.checked(newer("1.3.0"), None, NOW);
     assert_eq!(u.state, State::Downloading(r("1.2.0"), 0));
+  }
+
+  /// A failed download stays until the feed has another release or none.
+  #[test]
+  fn a_failed_download_gives_way_to_the_feed() {
+    let mut u = Updater::new(true);
+    checked(&mut u, false, newer("1.2.0"), None);
+    u.install();
+    u.failed("1.2.0 is not the file".into());
+    checked(&mut u, false, newer("1.3.0"), None);
+    assert_eq!(u.state, State::Available(r("1.3.0")), "a newer one is offered");
+
+    u.install();
+    u.failed("1.3.0 is not the file".into());
+    checked(&mut u, false, Ok(None), None);
+    assert_eq!(u.state, State::Idle, "the feed took it back");
+  }
+
+  /// The window opened on an offer while an automatic check runs: the feed taking it back says
+  /// so there, not "Checking…".
+  #[test]
+  fn an_offer_taken_back_in_the_window_is_up_to_date() {
+    let mut u = Updater::new(true);
+    checked(&mut u, false, newer("1.2.0"), None);
+    assert!(u.check(false));
+    assert!(!u.open(), "the offer shows as it is");
+    u.checked(Ok(None), None, NOW);
+    assert_eq!(u.state, State::UpToDate);
+    u.closed();
+    assert_eq!(u.state, State::Idle);
+  }
+
+  /// The update that started this app failed: no automatic check runs while the failure shows,
+  /// so it stays until the person has seen it; the next tick after offers the release.
+  #[test]
+  fn a_failed_relaunch_shows_until_seen() {
+    let why = "installing the update: the new version didn't start";
+    let mut u = Updater::new(true);
+    u.relaunched(why.into());
+    assert!(!u.due(NOW), "not the launch's check");
+    assert!(!u.open(), "the failure shows first");
+    assert_eq!(u.state, State::Relaunched(why.into()));
+    u.closed();
+    assert_eq!(u.state, State::Idle, "seen");
+    assert!(u.due(NOW), "the next tick's");
+    checked(&mut u, false, newer("1.2.0"), None);
+    assert_eq!(u.state, State::Available(r("1.2.0")));
+    assert!(!u.due(NOW), "answered");
+
+    // Retry checks again.
+    u.relaunched(why.into());
+    assert_eq!(u.install(), None);
+    assert!(u.check(true));
+    u.checked(newer("1.2.0"), None, NOW);
+    assert_eq!(u.state, State::Available(r("1.2.0")));
+  }
+
+  // MARK: Window
+
+  /// The window over `state` in the light look, in the language of `AWAKE_SHOTS_LOCALE` (`make
+  /// shots LOCALE=…`), and what the person chose in it.
+  fn window(state: State) -> (Harness<UpdateWindow>, Rc<RefCell<Vec<Act>>>) {
+    let acts = Rc::new(RefCell::new(Vec::new()));
+    let chosen = acts.clone();
+    let w = UpdateWindow::new(state, move |act| chosen.borrow_mut().push(act));
+    let cfg = config();
+    let mut h = Harness::new(w, cfg.size, 2.0);
+    h.set_titlebar(Some(harness::mac_titlebar(cfg.title, false)));
+    if let Ok(tag) = std::env::var("AWAKE_SHOTS_LOCALE") {
+      h.set_locale(Locale::Tag(tag.leak()), crate::LOCALES);
+    }
+
+    h.event(Event::Appearance(Appearance::LIGHT));
+    h.render();
+    (h, acts)
+  }
+
+  /// A release on offer.
+  fn available() -> State {
+    State::Available(release("1.2.0"))
+  }
+
+  #[test]
+  fn an_offer_has_its_three_choices_and_the_notes() {
+    for (id, act) in
+      [(SKIP, Act::Skip), (LATER, Act::Later), (NOTES, Act::Notes), (INSTALL, Act::Install)]
+    {
+      let (mut h, acts) = window(available());
+      assert!(h.click_id(Id::of(id)), "{id}");
+      assert_eq!(*acts.borrow(), [act], "{id}");
+    }
+
+    // The window draws the state the app gives it: Install's download, once the app starts it.
+    let (mut h, _) = window(available());
+    h.app_mut().state = State::Downloading(release("1.2.0"), 0);
+    h.render();
+    assert!(h.rect(Id::of(INSTALL)).is_none() && h.rect(Id::of(CLOSE)).is_some(), "Hide");
+  }
+
+  /// A release without notes is offered without a link to them.
+  #[test]
+  fn an_offer_without_notes_has_no_link() {
+    let (h, _) = window(State::Available(r("1.2.0")));
+    assert!(h.rect(Id::of(NOTES)).is_none());
+    assert!(h.rect(Id::of(INSTALL)).is_some());
+  }
+
+  /// A failed download, check or relaunch offers Retry and Close, under its own title.
+  #[test]
+  fn a_failure_offers_retry_and_close() {
+    let r = Some(release("1.2.0"));
+    let failures = [
+      (State::Failed(r, "the download stopped".into()), "The update failed"),
+      (State::Failed(None, "offline".into()), "Couldn’t check for updates"),
+      (State::Relaunched("the new version didn't start".into()), "The update failed"),
+    ];
+    for (state, title) in failures {
+      for (id, act) in [(RETRY, Act::Retry), (CLOSE, Act::Close)] {
+        let (mut h, acts) = window(state.clone());
+        assert!(h.a11y().contains(title), "{state:?}: {}", h.a11y());
+        assert!(h.click_id(Id::of(id)), "{id}");
+        assert_eq!(*acts.borrow(), [act], "{state:?} {id}");
+      }
+    }
+  }
+
+  /// Every state in both looks draws its title and one way out of the window at least; with
+  /// `AWAKE_SHOTS` set (`make shots`), written there.
+  #[test]
+  fn every_state_renders_in_both_looks() {
+    let r = release("1.2.0");
+    let states = [
+      ("available", State::Available(r.clone())),
+      ("checking", State::Checking),
+      ("up-to-date", State::UpToDate),
+      ("downloading", State::Downloading(r.clone(), 42)),
+      ("restarting", State::Restarting(r.clone())),
+      ("failed", State::Failed(Some(r), "the download stopped: the network is down".into())),
+      ("check-failed", State::Failed(None, OFFLINE.into())),
+      (
+        "relaunched",
+        State::Relaunched("installing the update: the new version didn't start".into()),
+      ),
+    ];
+    let dir = std::env::var_os("AWAKE_SHOTS").map(PathBuf::from);
+    for (look, appearance) in [("light", Appearance::LIGHT), ("dark", Appearance::DARK)] {
+      for (name, state) in &states {
+        let (mut h, _) = window(state.clone());
+        h.event(Event::Appearance(appearance));
+
+        let ground = h.render().pixel(4.0, 4.0);
+        assert_eq!(ground[0] < 100, appearance.scheme.is_dark(), "{name} {look}: {ground:?}");
+        let out = [CLOSE, LATER].iter().any(|id| h.rect(Id::of(*id)).is_some());
+        assert!(out, "{name}: no way out");
+        if let Some(dir) = &dir {
+          std::fs::create_dir_all(dir).unwrap();
+          h.shot(&dir.join(format!("update-{name}-{look}.png"))).unwrap();
+        }
+      }
+    }
   }
 }

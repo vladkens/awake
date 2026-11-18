@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Awake\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-18 10:21+0200\n"
+"POT-Creation-Date: 2026-11-18 12:11+0200\n"
 "PO-Revision-Date: 2026-11-18 10:00+0200\n"
 "Last-Translator: \n"
 "Language-Team: none\n"
@@ -14,122 +14,229 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: src/main.rs:164
+#: src/main.rs:170
 msgid "Keep Awake For"
 msgstr "スリープさせない時間"
 
-#: src/main.rs:168
+#: src/main.rs:172
 msgid "Settings…"
 msgstr "設定…"
 
-#: src/main.rs:169
+#: src/main.rs:175
 #, rust-format
 msgid "Quit {name}"
 msgstr "{name}を終了"
 
-#: src/main.rs:179
+#: src/main.rs:184
 #, rust-format
-msgid "Update to {version}"
-msgstr "{version}にアップデート"
+msgid "Update Available: {version}…"
+msgstr "アップデートあり：{version}…"
 
-#: src/main.rs:183
+#: src/main.rs:185
 #, rust-format
-msgid "Downloading {version}… {done}%"
-msgstr "{version}をダウンロード中… {done}%"
+msgid "Downloading Update: {done}%"
+msgstr "アップデートをダウンロード中：{done}%"
+
+#: src/main.rs:186
+msgid "Restarting to Update…"
+msgstr "アップデートのため再起動中…"
 
 #: src/main.rs:187
-#, rust-format
-msgid "Retry Update to {version}"
-msgstr "{version}へのアップデートを再試行"
+msgid "Update Failed…"
+msgstr "アップデートに失敗しました…"
 
-#: src/main.rs:203
+#: src/main.rs:197
+msgid "Checking for Updates…"
+msgstr "アップデートを確認中…"
+
+#: src/main.rs:198 src/window.rs:240
+msgid "Check for Updates…"
+msgstr "アップデートを確認…"
+
+#: src/main.rs:209
 msgid "Keep Awake Indefinitely"
 msgstr "無期限にスリープさせない"
 
-#: src/main.rs:203
+#: src/main.rs:209
 msgid "Turn Off"
 msgstr "オフにする"
 
-#: src/main.rs:209
+#: src/main.rs:215
 #, rust-format
 msgid "{n} Minute"
 msgid_plural "{n} Minutes"
 msgstr[0] "{n}分"
 
-#: src/main.rs:210
+#: src/main.rs:216
 #, rust-format
 msgid "{n} Hour"
 msgid_plural "{n} Hours"
 msgstr[0] "{n}時間"
 
-#: src/main.rs:628
+#: src/main.rs:720
 #, rust-format
 msgid "Keeping awake despite {why}"
 msgstr "スリープ防止中（{why}にもかかわらず）"
 
-#: src/main.rs:629 src/main.rs:637
+#: src/main.rs:721 src/main.rs:729
 msgid "Keeping awake"
 msgstr "スリープ防止中"
 
 #. Translators: {time} is a clock counting down: 59:42, 2:59:42.
-#: src/main.rs:634
+#: src/main.rs:726
 #, rust-format
 msgid "{time} left"
 msgstr "残り{time}"
 
 #. Translators: the menu's first line after the app turned off by itself, before why.
-#: src/main.rs:639
+#: src/main.rs:731
 msgid "Turned off"
 msgstr "オフになりました"
 
 #. Translators: the menu's first line while nothing keeps the Mac awake.
-#: src/main.rs:641
+#: src/main.rs:733
 msgid "Off"
 msgstr "オフ"
 
 #. Translators: {names} are the command line's holds, by the names it gave them.
-#: src/main.rs:650
+#: src/main.rs:742
 #, rust-format
 msgid "for {names}"
 msgstr "{names}のため"
 
-#: src/main.rs:653 src/main.rs:1082
+#: src/main.rs:745 src/main.rs:1206
 #, rust-format
 msgid "not for {names}: {why}"
 msgstr "{names}は対象外：{why}"
 
 #. Translators: why the Mac can't stay awake, after "Turned off ·" and in "Keeping awake
 #. despite {why}"; these and the next ones.
-#: src/main.rs:784
+#: src/main.rs:882
 msgid "Low Power Mode"
 msgstr "低電力モード"
 
-#: src/main.rs:785
+#: src/main.rs:883
 #, rust-format
 msgid "low battery ({percent}%)"
 msgstr "バッテリー残量低下（{percent}%）"
 
-#: src/main.rs:786
+#: src/main.rs:884
 msgid "battery power"
 msgstr "バッテリー電源"
 
-#: src/main.rs:787
+#: src/main.rs:885
 msgid "screen locked"
 msgstr "画面ロック"
 
-#: src/main.rs:788
+#: src/main.rs:886
 msgid "the system refused"
 msgstr "システムが拒否しました"
 
-#: src/main.rs:796
+#: src/main.rs:894
 #, rust-format
 msgid "{name}: keeping awake"
 msgstr "{name}：スリープ防止中"
 
-#: src/main.rs:798
+#: src/main.rs:896
 #, rust-format
 msgid "{name}: off"
 msgstr "{name}：オフ"
+
+#: src/updater.rs:308
+msgid "Software Update"
+msgstr "ソフトウェアアップデート"
+
+#: src/updater.rs:338
+msgid "Checking for updates…"
+msgstr "アップデートを確認中…"
+
+#: src/updater.rs:340
+msgid "You’re up to date!"
+msgstr "最新の状態です"
+
+#: src/updater.rs:341
+#, rust-format
+msgid "{name} {current} is the newest version."
+msgstr "{name} {current}は最新バージョンです。"
+
+#: src/updater.rs:344
+#, rust-format
+msgid "A new version of {name} is available!"
+msgstr "{name}の新しいバージョンがあります"
+
+#: src/updater.rs:346
+#, rust-format
+msgid "{name} {new} is out, you have {current}. Install it now?"
+msgstr ""
+"{name} {new}が公開されました。現在は {current} です。今すぐインストールします"
+"か？"
+
+#: src/updater.rs:352
+msgid "Downloading the update…"
+msgstr "アップデートをダウンロード中…"
+
+#: src/updater.rs:354
+msgid "Installing the update…"
+msgstr "アップデートをインストール中…"
+
+#: src/updater.rs:355
+#, rust-format
+msgid "{name} restarts as {new}."
+msgstr "{name}は{new}として再起動します。"
+
+#: src/updater.rs:358
+msgid "The update failed"
+msgstr "アップデートに失敗しました"
+
+#: src/updater.rs:360
+msgid "Couldn’t check for updates"
+msgstr "アップデートを確認できませんでした"
+
+#: src/updater.rs:380
+#, rust-format
+msgid "{size} MB"
+msgstr "{size} MB"
+
+#: src/updater.rs:382
+#, rust-format
+msgid "{done} of {total}"
+msgstr "{done}/{total}"
+
+#: src/updater.rs:391
+msgid "Release notes"
+msgstr "リリースノート"
+
+#: src/updater.rs:419
+msgid "Skip This Version"
+msgstr "このバージョンをスキップ"
+
+#: src/updater.rs:422
+msgid "Remind Me Later"
+msgstr "後で通知"
+
+#: src/updater.rs:423
+msgid "Install Update"
+msgstr "インストール"
+
+#: src/updater.rs:428
+msgid "Close"
+msgstr "閉じる"
+
+#: src/updater.rs:429
+msgid "Retry"
+msgstr "再試行"
+
+#: src/updater.rs:433
+msgid "OK"
+msgstr "OK"
+
+#: src/updater.rs:437
+msgid "Cancel"
+msgstr "キャンセル"
+
+#: src/updater.rs:441
+msgid "Hide"
+msgstr "隠す"
 
 #: src/window.rs:71
 msgid "General"
@@ -173,7 +280,8 @@ msgstr "Awake が開くとスリープ防止がオンになります。"
 
 #: src/window.rs:95
 msgid "On battery. Turned on by hand below it, it stays on."
-msgstr "バッテリー使用時。これを下回ってから手動でオンにすると、オンのままです。"
+msgstr ""
+"バッテリー使用時。これを下回ってから手動でオンにすると、オンのままです。"
 
 #: src/window.rs:96
 msgid "Set in System Settings → Battery."
@@ -195,120 +303,79 @@ msgstr "Awake.appからのみ動作します。"
 msgid "This Mac has no battery."
 msgstr "このMacにはバッテリーがありません。"
 
-#: src/window.rs:146
+#: src/window.rs:144
 msgid "Startup"
 msgstr "起動"
 
-#: src/window.rs:154
+#: src/window.rs:152
 msgid "Launch at login"
 msgstr "ログイン時に開く"
 
-#: src/window.rs:162
+#: src/window.rs:160
 msgid "Keep awake at launch"
 msgstr "起動時にスリープ防止をオン"
 
-#: src/window.rs:167
+#: src/window.rs:165
 msgid "Screen"
 msgstr "画面"
 
-#: src/window.rs:168
+#: src/window.rs:166
 msgid "Let the display sleep"
 msgstr "ディスプレイのスリープを許可"
 
-#: src/window.rs:171
+#: src/window.rs:169
 msgid "Turn off when the screen locks"
 msgstr "画面ロック時にオフにする"
 
-#: src/window.rs:175
+#: src/window.rs:173
 msgid "Menu Bar"
 msgstr "メニューバー"
 
-#: src/window.rs:176
+#: src/window.rs:174
 msgid "Show the time left"
 msgstr "残り時間を表示"
 
 #. Translators: the header of the rows Below 20% battery, In Low Power Mode, When unplugged.
-#: src/window.rs:188
+#: src/window.rs:186
 msgid "Turn Off Keep Awake"
 msgstr "スリープ防止をオフにする条件"
 
-#: src/window.rs:189
+#: src/window.rs:187
 #, rust-format
 msgid "Below {percent}% battery"
 msgstr "バッテリー残量が{percent}%未満"
 
 #. Translators: the battery slider's ticks: 10%, 50%, 90%.
-#: src/window.rs:198
+#: src/window.rs:196
 #, rust-format
 msgid "{percent}%"
 msgstr "{percent}%"
 
-#: src/window.rs:201
+#: src/window.rs:199
 msgid "Battery level"
 msgstr "バッテリー残量"
 
-#: src/window.rs:209
+#: src/window.rs:207
 msgid "In Low Power Mode"
 msgstr "低電力モード時"
 
-#: src/window.rs:213
+#: src/window.rs:211
 msgid "When unplugged"
 msgstr "電源アダプタを外したとき"
 
-#: src/window.rs:227
+#: src/window.rs:225
 #, rust-format
 msgid "Version {version}"
 msgstr "バージョン {version}"
 
-#: src/window.rs:228
+#: src/window.rs:226
 msgid "Keeps your Mac awake from the menu bar."
 msgstr "メニューバーからMacをスリープさせません。"
 
-#: src/window.rs:243
+#: src/window.rs:235
 msgid "Donate"
 msgstr "寄付"
 
-#: src/window.rs:257
+#: src/window.rs:248
 msgid "Acknowledgements"
 msgstr "謝辞"
-
-#: src/window.rs:277
-msgid "Check for Updates"
-msgstr "アップデートを確認"
-
-#: src/window.rs:280
-msgid "Checking for updates…"
-msgstr "アップデートを確認中…"
-
-#: src/window.rs:281
-#, rust-format
-msgid "{name} is up to date."
-msgstr "{name}は最新です。"
-
-#: src/window.rs:283
-#, rust-format
-msgid "{name} {version} is available."
-msgstr "{name} {version}が利用可能です。"
-
-#: src/window.rs:284
-msgid "Install and Relaunch"
-msgstr "インストールして再起動"
-
-#: src/window.rs:286
-#, rust-format
-msgid "Downloading the update… {done}%"
-msgstr "アップデートをダウンロード中… {done}%"
-
-#: src/window.rs:289 src/window.rs:296
-#, rust-format
-msgid "The update failed: {why}"
-msgstr "アップデートに失敗しました：{why}"
-
-#: src/window.rs:290
-#, rust-format
-msgid "Couldn't check for updates: {why}"
-msgstr "アップデートを確認できませんでした：{why}"
-
-#: src/window.rs:293
-msgid "Try Again"
-msgstr "再試行"

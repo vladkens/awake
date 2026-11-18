@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Awake\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-18 10:21+0200\n"
+"POT-Creation-Date: 2026-11-18 12:11+0200\n"
 "PO-Revision-Date: 2026-11-18 10:00+0200\n"
 "Last-Translator: \n"
 "Language-Team: none\n"
@@ -14,122 +14,227 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: src/main.rs:164
+#: src/main.rs:170
 msgid "Keep Awake For"
 msgstr "保持唤醒时长"
 
-#: src/main.rs:168
+#: src/main.rs:172
 msgid "Settings…"
 msgstr "设置…"
 
-#: src/main.rs:169
+#: src/main.rs:175
 #, rust-format
 msgid "Quit {name}"
 msgstr "退出{name}"
 
-#: src/main.rs:179
+#: src/main.rs:184
 #, rust-format
-msgid "Update to {version}"
-msgstr "更新到 {version}"
+msgid "Update Available: {version}…"
+msgstr "有可用更新：{version}…"
 
-#: src/main.rs:183
+#: src/main.rs:185
 #, rust-format
-msgid "Downloading {version}… {done}%"
-msgstr "正在下载 {version}… {done}%"
+msgid "Downloading Update: {done}%"
+msgstr "正在下载更新：{done}%"
+
+#: src/main.rs:186
+msgid "Restarting to Update…"
+msgstr "正在重新启动以更新…"
 
 #: src/main.rs:187
-#, rust-format
-msgid "Retry Update to {version}"
-msgstr "重试更新到 {version}"
+msgid "Update Failed…"
+msgstr "更新失败…"
 
-#: src/main.rs:203
+#: src/main.rs:197
+msgid "Checking for Updates…"
+msgstr "正在检查更新…"
+
+#: src/main.rs:198 src/window.rs:240
+msgid "Check for Updates…"
+msgstr "检查更新…"
+
+#: src/main.rs:209
 msgid "Keep Awake Indefinitely"
 msgstr "无限期保持唤醒"
 
-#: src/main.rs:203
+#: src/main.rs:209
 msgid "Turn Off"
 msgstr "关闭"
 
-#: src/main.rs:209
+#: src/main.rs:215
 #, rust-format
 msgid "{n} Minute"
 msgid_plural "{n} Minutes"
 msgstr[0] "{n} 分钟"
 
-#: src/main.rs:210
+#: src/main.rs:216
 #, rust-format
 msgid "{n} Hour"
 msgid_plural "{n} Hours"
 msgstr[0] "{n} 小时"
 
-#: src/main.rs:628
+#: src/main.rs:720
 #, rust-format
 msgid "Keeping awake despite {why}"
 msgstr "尽管{why}，仍保持唤醒"
 
-#: src/main.rs:629 src/main.rs:637
+#: src/main.rs:721 src/main.rs:729
 msgid "Keeping awake"
 msgstr "正在保持唤醒"
 
 #. Translators: {time} is a clock counting down: 59:42, 2:59:42.
-#: src/main.rs:634
+#: src/main.rs:726
 #, rust-format
 msgid "{time} left"
 msgstr "剩余 {time}"
 
 #. Translators: the menu's first line after the app turned off by itself, before why.
-#: src/main.rs:639
+#: src/main.rs:731
 msgid "Turned off"
 msgstr "已关闭"
 
 #. Translators: the menu's first line while nothing keeps the Mac awake.
-#: src/main.rs:641
+#: src/main.rs:733
 msgid "Off"
 msgstr "已关闭"
 
 #. Translators: {names} are the command line's holds, by the names it gave them.
-#: src/main.rs:650
+#: src/main.rs:742
 #, rust-format
 msgid "for {names}"
 msgstr "用于 {names}"
 
-#: src/main.rs:653 src/main.rs:1082
+#: src/main.rs:745 src/main.rs:1206
 #, rust-format
 msgid "not for {names}: {why}"
 msgstr "未用于 {names}：{why}"
 
 #. Translators: why the Mac can't stay awake, after "Turned off ·" and in "Keeping awake
 #. despite {why}"; these and the next ones.
-#: src/main.rs:784
+#: src/main.rs:882
 msgid "Low Power Mode"
 msgstr "低电量模式"
 
-#: src/main.rs:785
+#: src/main.rs:883
 #, rust-format
 msgid "low battery ({percent}%)"
 msgstr "电量低（{percent}%）"
 
-#: src/main.rs:786
+#: src/main.rs:884
 msgid "battery power"
 msgstr "使用电池供电"
 
-#: src/main.rs:787
+#: src/main.rs:885
 msgid "screen locked"
 msgstr "屏幕已锁定"
 
-#: src/main.rs:788
+#: src/main.rs:886
 msgid "the system refused"
 msgstr "系统拒绝"
 
-#: src/main.rs:796
+#: src/main.rs:894
 #, rust-format
 msgid "{name}: keeping awake"
 msgstr "{name}：正在保持唤醒"
 
-#: src/main.rs:798
+#: src/main.rs:896
 #, rust-format
 msgid "{name}: off"
 msgstr "{name}：已关闭"
+
+#: src/updater.rs:308
+msgid "Software Update"
+msgstr "软件更新"
+
+#: src/updater.rs:338
+msgid "Checking for updates…"
+msgstr "正在检查更新…"
+
+#: src/updater.rs:340
+msgid "You’re up to date!"
+msgstr "已是最新版本"
+
+#: src/updater.rs:341
+#, rust-format
+msgid "{name} {current} is the newest version."
+msgstr "{name} {current} 是最新版本。"
+
+#: src/updater.rs:344
+#, rust-format
+msgid "A new version of {name} is available!"
+msgstr "{name} 有新版本可用"
+
+#: src/updater.rs:346
+#, rust-format
+msgid "{name} {new} is out, you have {current}. Install it now?"
+msgstr "{name} {new} 已发布，你的版本是 {current}。要现在安装吗？"
+
+#: src/updater.rs:352
+msgid "Downloading the update…"
+msgstr "正在下载更新…"
+
+#: src/updater.rs:354
+msgid "Installing the update…"
+msgstr "正在安装更新…"
+
+#: src/updater.rs:355
+#, rust-format
+msgid "{name} restarts as {new}."
+msgstr "{name} 将以 {new} 版本重新启动。"
+
+#: src/updater.rs:358
+msgid "The update failed"
+msgstr "更新失败"
+
+#: src/updater.rs:360
+msgid "Couldn’t check for updates"
+msgstr "无法检查更新"
+
+#: src/updater.rs:380
+#, rust-format
+msgid "{size} MB"
+msgstr "{size} MB"
+
+#: src/updater.rs:382
+#, rust-format
+msgid "{done} of {total}"
+msgstr "{done}/{total}"
+
+#: src/updater.rs:391
+msgid "Release notes"
+msgstr "发行说明"
+
+#: src/updater.rs:419
+msgid "Skip This Version"
+msgstr "跳过此版本"
+
+#: src/updater.rs:422
+msgid "Remind Me Later"
+msgstr "以后提醒我"
+
+#: src/updater.rs:423
+msgid "Install Update"
+msgstr "安装更新"
+
+#: src/updater.rs:428
+msgid "Close"
+msgstr "关闭"
+
+#: src/updater.rs:429
+msgid "Retry"
+msgstr "重试"
+
+#: src/updater.rs:433
+msgid "OK"
+msgstr "好"
+
+#: src/updater.rs:437
+msgid "Cancel"
+msgstr "取消"
+
+#: src/updater.rs:441
+msgid "Hide"
+msgstr "隐藏"
 
 #: src/window.rs:71
 msgid "General"
@@ -195,120 +300,79 @@ msgstr "仅在 Awake.app 中有效。"
 msgid "This Mac has no battery."
 msgstr "这台 Mac 没有电池。"
 
-#: src/window.rs:146
+#: src/window.rs:144
 msgid "Startup"
 msgstr "启动"
 
-#: src/window.rs:154
+#: src/window.rs:152
 msgid "Launch at login"
 msgstr "登录时打开"
 
-#: src/window.rs:162
+#: src/window.rs:160
 msgid "Keep awake at launch"
 msgstr "启动时保持唤醒"
 
-#: src/window.rs:167
+#: src/window.rs:165
 msgid "Screen"
 msgstr "屏幕"
 
-#: src/window.rs:168
+#: src/window.rs:166
 msgid "Let the display sleep"
 msgstr "允许显示器睡眠"
 
-#: src/window.rs:171
+#: src/window.rs:169
 msgid "Turn off when the screen locks"
 msgstr "锁定屏幕时关闭"
 
-#: src/window.rs:175
+#: src/window.rs:173
 msgid "Menu Bar"
 msgstr "菜单栏"
 
-#: src/window.rs:176
+#: src/window.rs:174
 msgid "Show the time left"
 msgstr "显示剩余时间"
 
 #. Translators: the header of the rows Below 20% battery, In Low Power Mode, When unplugged.
-#: src/window.rs:188
+#: src/window.rs:186
 msgid "Turn Off Keep Awake"
 msgstr "自动关闭保持唤醒"
 
-#: src/window.rs:189
+#: src/window.rs:187
 #, rust-format
 msgid "Below {percent}% battery"
 msgstr "电量低于 {percent}%"
 
 #. Translators: the battery slider's ticks: 10%, 50%, 90%.
-#: src/window.rs:198
+#: src/window.rs:196
 #, rust-format
 msgid "{percent}%"
 msgstr "{percent}%"
 
-#: src/window.rs:201
+#: src/window.rs:199
 msgid "Battery level"
 msgstr "电池电量"
 
-#: src/window.rs:209
+#: src/window.rs:207
 msgid "In Low Power Mode"
 msgstr "低电量模式下"
 
-#: src/window.rs:213
+#: src/window.rs:211
 msgid "When unplugged"
 msgstr "断开电源时"
 
-#: src/window.rs:227
+#: src/window.rs:225
 #, rust-format
 msgid "Version {version}"
 msgstr "版本 {version}"
 
-#: src/window.rs:228
+#: src/window.rs:226
 msgid "Keeps your Mac awake from the menu bar."
 msgstr "从菜单栏让你的 Mac 保持唤醒。"
 
-#: src/window.rs:243
+#: src/window.rs:235
 msgid "Donate"
 msgstr "捐助"
 
-#: src/window.rs:257
+#: src/window.rs:248
 msgid "Acknowledgements"
 msgstr "致谢"
-
-#: src/window.rs:277
-msgid "Check for Updates"
-msgstr "检查更新"
-
-#: src/window.rs:280
-msgid "Checking for updates…"
-msgstr "正在检查更新…"
-
-#: src/window.rs:281
-#, rust-format
-msgid "{name} is up to date."
-msgstr "{name} 已是最新版本。"
-
-#: src/window.rs:283
-#, rust-format
-msgid "{name} {version} is available."
-msgstr "{name} {version} 现已推出。"
-
-#: src/window.rs:284
-msgid "Install and Relaunch"
-msgstr "安装并重新启动"
-
-#: src/window.rs:286
-#, rust-format
-msgid "Downloading the update… {done}%"
-msgstr "正在下载更新… {done}%"
-
-#: src/window.rs:289 src/window.rs:296
-#, rust-format
-msgid "The update failed: {why}"
-msgstr "更新失败：{why}"
-
-#: src/window.rs:290
-#, rust-format
-msgid "Couldn't check for updates: {why}"
-msgstr "无法检查更新：{why}"
-
-#: src/window.rs:293
-msgid "Try Again"
-msgstr "重试"

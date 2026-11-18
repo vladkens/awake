@@ -4,11 +4,11 @@
 //! menu, or the app opened again) has the rest: launch at login, on at launch, the display left to
 //! sleep, off when the screen locks, the time left beside the cup, and the battery's rules, which a
 //! session turned on by hand outlives. The status item, the menu and the window are nimbo's; what
-//! nimbo lacks is AppKit's, in `appkit.rs`. Updates come in place from GitHub's releases
-//! (`updater.rs`). Run with arguments, the binary is the command line (`cli.rs`), which asks the
-//! running app: on, off, the status, and holds by name or for a command, which keep the Mac awake
-//! beside the session. The menu and the window speak the Mac's language from nimbo's gettext
-//! catalogs ([`LOCALES`]); the command line speaks English.
+//! nimbo lacks is AppKit's, in `appkit.rs`. Updates come in place from GitHub's releases, offered
+//! in a window of their own as Sparkle's (`updater.rs`). Run with arguments, the binary is the
+//! command line (`cli.rs`), which asks the running app: on, off, the status, and holds by name or
+//! for a command, which keep the Mac awake beside the session. The menu and the window speak the
+//! Mac's language from nimbo's gettext catalogs ([`LOCALES`]); the command line speaks English.
 //!
 //!   make run
 
@@ -33,7 +33,7 @@ use nimbo::{
 use power::{Assertion, Battery, Change};
 use settings::Settings;
 use tracing_subscriber::EnvFilter;
-use updater::Updater;
+use updater::{Act, UpdateWindow, Updater};
 use window::{Form, FormEvent, Shown};
 
 /// This build's, which the update feed is compared to.
@@ -76,9 +76,11 @@ enum Action {
   Toggle,
   /// One of [`LENGTHS`], again from its start when it runs.
   For(usize),
-  /// Download the update on offer and relaunch as it.
+  /// The update's row: its window, with the release on offer, its download or its failure.
   Update,
   Settings,
+  /// Check for Updates…: the update's window, with a check when it has nothing else to show.
+  CheckUpdates,
   Quit,
 }
 
@@ -121,7 +123,9 @@ struct State {
   icon: &'static str,
   title: String,
   updater: Updater,
-  /// The update's item in the menu as last set: an open menu keeps it, or its absence.
+  /// The update's window, while open.
+  update_window: Option<Window<UpdateWindow>>,
+  /// The update's row in the menu as last set: an open menu keeps it, or its absence.
   update_item: Option<Item<Action>>,
   _watch: Option<power::Watch>,
 }
@@ -148,51 +152,53 @@ fn early(length: Duration) -> Duration {
   if length > Duration::from_secs(1) { length * 10 / 11 } else { length }
 }
 
-/// The menu while on or off; `length` is the timed session's, `update` the updater's item.
+/// The menu while on or off; `length` is the timed session's, `update` the update's row under the
+/// status, `check` Check for Updates… where the app can update.
 fn menu(
   status: &str,
   on: bool,
   length: Option<Duration>,
-  update: Option<Item<Action>>,
+  (update, check): (Option<Item<Action>>, Option<Item<Action>>),
 ) -> Menu<Action> {
   let lengths = LENGTHS.iter().enumerate();
   let lengths = lengths.map(|(i, &l)| Item::toggle(Action::For(i), &title(l), length == Some(l)));
-  let mut items = vec![
-    Item::full(Action::Status, status).enabled(false),
+  let mut items = vec![Item::full(Action::Status, status).enabled(false)];
+  items.extend(update);
+  items.extend([
     Item::Divider,
     Item::button(Action::Toggle, toggle(on)),
     Item::submenu(&t!("Keep Awake For"), Menu::new(lengths.collect())),
     Item::Divider,
-  ];
-  items.extend(update);
-  items.push(Item::button(Action::Settings, &t!("Settings…")).key(Shortcut::char(',').cmd()));
+    Item::button(Action::Settings, &t!("Settings…")).key(Shortcut::char(',').cmd()),
+  ]);
+  items.extend(check);
   let quit = Item::button(Action::Quit, &t!("Quit {name}", name = INFO.name));
-  items.push(quit.key(Shortcut::char('q').cmd()));
+  items.extend([Item::Divider, quit.key(Shortcut::char('q').cmd())]);
   Menu::new(items)
 }
 
-/// The menu's item for an update on offer, on its way, or failed on its way.
+/// The update's row while it has news: a release on offer, its download, the restart, a failure.
 fn update_item(state: Option<&updater::State>) -> Option<Item<Action>> {
   use updater::{State, shown};
-  match state? {
-    State::Available(r) => {
-      let title = t!("Update to {version}", version = shown(&r.version));
-      Some(Item::button(Action::Update, &title))
-    }
-    State::Downloading(r, done) => {
-      let title = t!("Downloading {version}… {done}%", version = shown(&r.version), done);
-      Some(Item::button(Action::Update, &title).enabled(false))
-    }
-    State::Failed(Some(r), _) => {
-      let title = t!("Retry Update to {version}", version = shown(&r.version));
-      Some(Item::button(Action::Update, &title))
-    }
-    State::Idle
-    | State::Checking
-    | State::UpToDate
-    | State::Failed(None, _)
-    | State::Relaunched(_) => None,
-  }
+  let label = match state? {
+    State::Available(r) => t!("Update Available: {version}…", version = shown(&r.version)),
+    State::Downloading(_, done) => t!("Downloading Update: {done}%", done),
+    State::Restarting(_) => t!("Restarting to Update…").to_string(),
+    State::Failed(..) | State::Relaunched(_) => t!("Update Failed…").to_string(),
+    State::Idle | State::Checking | State::UpToDate => return None,
+  };
+
+  Some(Item::button(Action::Update, &label))
+}
+
+/// Check for Updates…, which opens the update's window: Checking while the person's check runs.
+fn check_item(state: Option<&updater::State>) -> Option<Item<Action>> {
+  let label = match state? {
+    updater::State::Checking => t!("Checking for Updates…"),
+    _ => t!("Check for Updates…"),
+  };
+
+  Some(Item::button(Action::CheckUpdates, label.as_str()))
 }
 
 const fn minutes(m: u64) -> Duration {
@@ -250,7 +256,7 @@ impl State {
       Action::Toggle if self.session.is_some() || self.held.is_some() => self.off(),
       Action::Toggle => self.start(None, true),
       Action::For(i) => self.start(Some(LENGTHS[i]), true),
-      Action::Update => self.install(),
+      Action::Update | Action::CheckUpdates => self.open_update(main),
     }
   }
 
@@ -259,21 +265,20 @@ impl State {
   fn on_menu(&mut self, open: bool) {
     self.menu_open = open;
     if open {
-      self.check(false);
+      self.check();
     }
 
     self.show();
   }
 
-  fn on_form(&mut self, event: FormEvent) {
+  fn on_form(&mut self, main: &mut Main, event: FormEvent) {
     match event {
       FormEvent::Login(on) => match autostart::set(&INFO, on) {
         Ok(autostart::State::RequiresApproval) => autostart::open_settings(),
         Ok(_) => {}
         Err(e) => tracing::warn!("launch at login: {e}"),
       },
-      FormEvent::Check => self.check(true),
-      FormEvent::Install => self.install(),
+      FormEvent::CheckUpdates => self.open_update(main),
       FormEvent::Changed(settings) => {
         let display = settings.display_sleeps != self.settings.display_sleeps;
         self.settings = settings;
@@ -309,7 +314,7 @@ impl State {
       Change::Woke | Change::Clock => {
         self.timer += 1;
         self.expire();
-        self.check(false);
+        self.check();
         self.hold();
       }
       Change::Locked if self.settings.off_on_lock && self.session.is_some() => {
@@ -324,7 +329,7 @@ impl State {
   fn open_settings(&mut self, main: &mut Main) {
     if self.window.is_none() {
       let proxy = self.proxy.clone();
-      let on = move |event| proxy.post(move |_| with_state(|state| state.on_form(event)));
+      let on = move |event| proxy.post(move |main| with_state(|state| state.on_form(main, event)));
       let (cfg, form) = Form::new(self.shown(), on);
       let window = main.open(&cfg, form);
       window.on_close(|_| with_state(|state| state.window = None));
@@ -524,13 +529,15 @@ impl State {
     });
   }
 
-  /// A check for updates, the person's or an automatic one when [`Updater::due`], on a thread of
-  /// its own; its answer comes back to the [`Updater`].
-  fn check(&mut self, manual: bool) {
-    if !manual && !self.updater.due(SystemTime::now()) || !self.updater.check(manual) {
-      return;
+  /// An automatic check for updates when one is [`Updater::due`].
+  fn check(&mut self) {
+    if self.updater.due(SystemTime::now()) && self.updater.check(false) {
+      self.spawn_check();
     }
+  }
 
+  /// The check, on a thread of its own; its answer comes back to the [`Updater`].
+  fn spawn_check(&self) {
     let proxy = self.proxy.clone();
     thread::spawn(move || {
       let found = updater::found(shipo::check(&updater::FEED, VERSION));
@@ -540,19 +547,98 @@ impl State {
 
       proxy.post(move |_| {
         with_state(|state| {
-          state.updater.checked(found, SystemTime::now());
+          let skipped = settings::skipped();
+          state.updater.checked(found, skipped.as_deref(), SystemTime::now());
           state.show();
         });
       });
     });
+  }
+
+  /// The update's window, brought to the front if open, with a check when there is nothing else to
+  /// show.
+  fn open_update(&mut self, main: &mut Main) {
+    if self.updater.open() {
+      self.spawn_check();
+    }
+
+    match &self.update_window {
+      Some(window) => window.front(),
+      None => {
+        let proxy = self.proxy.clone();
+        let chosen = move |act| proxy.post(move |_| with_state(|state| state.on_update(act)));
+        let window =
+          main.open(&updater::config(), UpdateWindow::new(self.updater.state.clone(), chosen));
+        window.on_close(|_| {
+          with_state(|state| {
+            state.update_window = None;
+            state.updater.closed();
+            state.show();
+          });
+        });
+        window.front();
+        self.update_window = Some(window);
+      }
+    }
 
     self.show();
   }
 
-  /// Downloads the update on offer on a thread of its own and starts its installer, which puts it
-  /// in once the app has quit and relaunches it; a failure shows in the menu and About.
-  fn install(&mut self) {
-    let Some(release) = self.updater.install() else { return };
+  /// From the update's window.
+  /// Install, or Retry: the download, or a check after a failed one or a failed relaunch;
+  /// `false` when there is nothing to do, the app can't update any more.
+  fn install(&mut self) -> bool {
+    if let Some(release) = self.updater.install() {
+      self.download(release);
+    } else if self.updater.check(true) {
+      self.spawn_check();
+    }
+
+    !matches!(self.updater.state, updater::State::Relaunched(_))
+  }
+
+  fn on_update(&mut self, act: Act) {
+    let mut close = false;
+    match act {
+      Act::Install | Act::Retry => close = !self.install(),
+      Act::Later => {
+        self.updater.later();
+        close = true;
+      }
+      Act::Skip => {
+        if let Some(version) = self.updater.skip() {
+          settings::skip(&version);
+        }
+
+        close = true;
+      }
+      Act::Notes => {
+        if let updater::State::Available(r) = &self.updater.state
+          && let Some(notes) = &r.notes
+          && let Err(e) = nimbo::open::url(notes)
+        {
+          tracing::warn!("the release notes: {e}");
+        }
+      }
+      Act::Close => close = true,
+    }
+
+    self.show();
+    // From the loop, the state let go: the window's close calls back into it.
+    if close {
+      self.proxy.post(|_| {
+        let mut window = None;
+        with_state(|state| window = state.update_window.clone());
+        if let Some(window) = window {
+          window.close();
+        }
+      });
+    }
+  }
+
+  /// Downloads `release` on a thread of its own and starts its installer, which puts it in once
+  /// the app has quit and relaunches it; a failure shows in the menu and the update's window.
+  fn download(&mut self, release: shipo::Release) {
     let proxy = self.proxy.clone();
     thread::spawn(move || {
       let mut at = 0;
@@ -564,15 +650,21 @@ impl State {
         }
       });
 
-      let installed = staged.and_then(shipo::install);
+      let installed = staged.and_then(|staged| {
+        proxy.post(|_| with_state(State::on_downloaded));
+        shipo::install(staged)
+      });
       proxy.post(move |_| with_state(|state| state.on_installed(installed)));
     });
-
-    self.show();
   }
 
   fn on_progress(&mut self, done: u8) {
     self.updater.progress(done);
+    self.show();
+  }
+
+  fn on_downloaded(&mut self) {
+    self.updater.downloaded();
     self.show();
   }
 
@@ -615,7 +707,7 @@ impl State {
       settings: self.settings,
       battery: power::battery().is_some(),
       login: autostart::state(&INFO),
-      update: self.updater.showing().cloned(),
+      updates: self.updater.showing().is_some(),
     }
   }
 
@@ -693,11 +785,17 @@ impl State {
     }
 
     self.update_item = update.clone();
-    self.tray.set_menu(&menu(&status, on, length, update));
+    let check = check_item(self.updater.showing());
+    self.tray.set_menu(&menu(&status, on, length, (update, check)));
 
     if let Some(window) = &self.window {
       let shown = self.shown();
       window.with(|form| form.shown = shown);
+    }
+
+    if let Some(window) = &self.update_window {
+      let state = self.updater.state.clone();
+      window.with(|w| w.state = state);
     }
 
     self.countdown(now);
@@ -891,6 +989,7 @@ fn start(main: &mut Main, failed: Option<String>) {
     icon: "cup.and.saucer",
     title: String::new(),
     updater,
+    update_window: None,
     update_item: None,
     _watch: None,
   };
@@ -904,7 +1003,7 @@ fn start(main: &mut Main, failed: Option<String>) {
       state.start(None, false);
     }
 
-    state.check(false);
+    state.check();
     state.show();
   });
 }
@@ -922,6 +1021,31 @@ mod tests {
 
   fn battery(percent: u32, draining: bool) -> Option<Battery> {
     Some(Battery { percent, draining })
+  }
+
+  /// An update shows under the status; Check for Updates… sits under Settings…, and Checking while
+  /// the person's check runs. An app that can't update has neither.
+  #[test]
+  fn an_update_shows_under_the_status() {
+    let items = |state: Option<updater::State>| {
+      let update = (update_item(state.as_ref()), check_item(state.as_ref()));
+      let items = menu("Off", false, None, update).items;
+      items.into_iter().map(|i| (i.action().cloned(), i.label().to_owned())).collect::<Vec<_>>()
+    };
+
+    let idle = items(Some(updater::State::Idle));
+    let ids: Vec<_> = idle[idle.len() - 4..].iter().map(|(a, _)| *a).collect();
+    assert_eq!(ids, [Some(Action::Settings), Some(Action::CheckUpdates), None, Some(Action::Quit)]);
+    assert_eq!(idle[idle.len() - 3].1, "Check for Updates…");
+    assert!(!idle.iter().any(|(a, _)| *a == Some(Action::Update)), "no news");
+
+    let available = items(Some(updater::State::Available(shipo::Release::test("1.2.0"))));
+    assert_eq!(available[1], (Some(Action::Update), "Update Available: v1.2.0…".into()));
+    let checking = items(Some(updater::State::Checking));
+    assert_eq!(checking[checking.len() - 3].1, "Checking for Updates…");
+
+    let off = items(None);
+    assert!(!off.iter().any(|(a, _)| matches!(a, Some(Action::Update | Action::CheckUpdates))));
   }
 
   #[test]

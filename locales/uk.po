@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Awake\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-18 10:21+0200\n"
+"POT-Creation-Date: 2026-11-18 12:11+0200\n"
 "PO-Revision-Date: 2026-11-18 10:00+0200\n"
 "Last-Translator: \n"
 "Language-Team: none\n"
@@ -15,43 +15,54 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
 "n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
-#: src/main.rs:164
+#: src/main.rs:170
 msgid "Keep Awake For"
 msgstr "Не засинати протягом"
 
-#: src/main.rs:168
+#: src/main.rs:172
 msgid "Settings…"
 msgstr "Параметри…"
 
-#: src/main.rs:169
+#: src/main.rs:175
 #, rust-format
 msgid "Quit {name}"
 msgstr "Вийти з {name}"
 
-#: src/main.rs:179
+#: src/main.rs:184
 #, rust-format
-msgid "Update to {version}"
-msgstr "Оновити до {version}"
+msgid "Update Available: {version}…"
+msgstr "Доступне оновлення: {version}…"
 
-#: src/main.rs:183
+#: src/main.rs:185
 #, rust-format
-msgid "Downloading {version}… {done}%"
-msgstr "Завантаження {version}… {done} %"
+msgid "Downloading Update: {done}%"
+msgstr "Завантаження оновлення: {done}%"
+
+#: src/main.rs:186
+msgid "Restarting to Update…"
+msgstr "Перезапуск для оновлення…"
 
 #: src/main.rs:187
-#, rust-format
-msgid "Retry Update to {version}"
-msgstr "Повторити оновлення до {version}"
+msgid "Update Failed…"
+msgstr "Не вдалося оновити…"
 
-#: src/main.rs:203
+#: src/main.rs:197
+msgid "Checking for Updates…"
+msgstr "Перевірка оновлень…"
+
+#: src/main.rs:198 src/window.rs:240
+msgid "Check for Updates…"
+msgstr "Перевірити оновлення…"
+
+#: src/main.rs:209
 msgid "Keep Awake Indefinitely"
 msgstr "Не засинати безстроково"
 
-#: src/main.rs:203
+#: src/main.rs:209
 msgid "Turn Off"
 msgstr "Вимкнути"
 
-#: src/main.rs:209
+#: src/main.rs:215
 #, rust-format
 msgid "{n} Minute"
 msgid_plural "{n} Minutes"
@@ -59,7 +70,7 @@ msgstr[0] "{n} хвилина"
 msgstr[1] "{n} хвилини"
 msgstr[2] "{n} хвилин"
 
-#: src/main.rs:210
+#: src/main.rs:216
 #, rust-format
 msgid "{n} Hour"
 msgid_plural "{n} Hours"
@@ -67,74 +78,168 @@ msgstr[0] "{n} година"
 msgstr[1] "{n} години"
 msgstr[2] "{n} годин"
 
-#: src/main.rs:628
+#: src/main.rs:720
 #, rust-format
 msgid "Keeping awake despite {why}"
 msgstr "Не дає заснути попри {why}"
 
-#: src/main.rs:629 src/main.rs:637
+#: src/main.rs:721 src/main.rs:729
 msgid "Keeping awake"
 msgstr "Не дає заснути"
 
 #. Translators: {time} is a clock counting down: 59:42, 2:59:42.
-#: src/main.rs:634
+#: src/main.rs:726
 #, rust-format
 msgid "{time} left"
 msgstr "лишилося {time}"
 
 #. Translators: the menu's first line after the app turned off by itself, before why.
-#: src/main.rs:639
+#: src/main.rs:731
 msgid "Turned off"
 msgstr "Вимкнено"
 
 #. Translators: the menu's first line while nothing keeps the Mac awake.
-#: src/main.rs:641
+#: src/main.rs:733
 msgid "Off"
 msgstr "Вимкнено"
 
 #. Translators: {names} are the command line's holds, by the names it gave them.
-#: src/main.rs:650
+#: src/main.rs:742
 #, rust-format
 msgid "for {names}"
 msgstr "для {names}"
 
-#: src/main.rs:653 src/main.rs:1082
+#: src/main.rs:745 src/main.rs:1206
 #, rust-format
 msgid "not for {names}: {why}"
 msgstr "не для {names}: {why}"
 
 #. Translators: why the Mac can't stay awake, after "Turned off ·" and in "Keeping awake
 #. despite {why}"; these and the next ones.
-#: src/main.rs:784
+#: src/main.rs:882
 msgid "Low Power Mode"
 msgstr "Режим низького енергоспоживання"
 
-#: src/main.rs:785
+#: src/main.rs:883
 #, rust-format
 msgid "low battery ({percent}%)"
 msgstr "низький заряд ({percent} %)"
 
-#: src/main.rs:786
+#: src/main.rs:884
 msgid "battery power"
 msgstr "живлення від акумулятора"
 
-#: src/main.rs:787
+#: src/main.rs:885
 msgid "screen locked"
 msgstr "екран заблоковано"
 
-#: src/main.rs:788
+#: src/main.rs:886
 msgid "the system refused"
 msgstr "система відмовила"
 
-#: src/main.rs:796
+#: src/main.rs:894
 #, rust-format
 msgid "{name}: keeping awake"
 msgstr "{name}: не дає заснути"
 
-#: src/main.rs:798
+#: src/main.rs:896
 #, rust-format
 msgid "{name}: off"
 msgstr "{name}: вимкнено"
+
+#: src/updater.rs:308
+msgid "Software Update"
+msgstr "Оновлення ПЗ"
+
+#: src/updater.rs:338
+msgid "Checking for updates…"
+msgstr "Перевірка оновлень…"
+
+#: src/updater.rs:340
+msgid "You’re up to date!"
+msgstr "Встановлено найновішу версію"
+
+#: src/updater.rs:341
+#, rust-format
+msgid "{name} {current} is the newest version."
+msgstr "{name} {current} — найновіша версія."
+
+#: src/updater.rs:344
+#, rust-format
+msgid "A new version of {name} is available!"
+msgstr "Доступна нова версія {name}"
+
+#: src/updater.rs:346
+#, rust-format
+msgid "{name} {new} is out, you have {current}. Install it now?"
+msgstr "Вийшла версія {name} {new}, у вас {current}. Встановити її зараз?"
+
+#: src/updater.rs:352
+msgid "Downloading the update…"
+msgstr "Завантаження оновлення…"
+
+#: src/updater.rs:354
+msgid "Installing the update…"
+msgstr "Встановлення оновлення…"
+
+#: src/updater.rs:355
+#, rust-format
+msgid "{name} restarts as {new}."
+msgstr "{name} перезапуститься у версії {new}."
+
+#: src/updater.rs:358
+msgid "The update failed"
+msgstr "Не вдалося оновити"
+
+#: src/updater.rs:360
+msgid "Couldn’t check for updates"
+msgstr "Не вдалося перевірити оновлення"
+
+#: src/updater.rs:380
+#, rust-format
+msgid "{size} MB"
+msgstr "{size} МБ"
+
+#: src/updater.rs:382
+#, rust-format
+msgid "{done} of {total}"
+msgstr "{done} з {total}"
+
+#: src/updater.rs:391
+msgid "Release notes"
+msgstr "Що нового"
+
+#: src/updater.rs:419
+msgid "Skip This Version"
+msgstr "Пропустити цю версію"
+
+#: src/updater.rs:422
+msgid "Remind Me Later"
+msgstr "Нагадати пізніше"
+
+#: src/updater.rs:423
+msgid "Install Update"
+msgstr "Встановити"
+
+#: src/updater.rs:428
+msgid "Close"
+msgstr "Закрити"
+
+#: src/updater.rs:429
+msgid "Retry"
+msgstr "Повторити"
+
+#: src/updater.rs:433
+msgid "OK"
+msgstr "OK"
+
+#: src/updater.rs:437
+msgid "Cancel"
+msgstr "Скасувати"
+
+#: src/updater.rs:441
+msgid "Hide"
+msgstr "Сховати"
 
 #: src/window.rs:71
 msgid "General"
@@ -178,7 +283,8 @@ msgstr "Awake вмикається одразу під час запуску."
 
 #: src/window.rs:95
 msgid "On battery. Turned on by hand below it, it stays on."
-msgstr "Від акумулятора. Якщо ввімкнути вручну нижче порогу, лишиться ввімкненим."
+msgstr ""
+"Від акумулятора. Якщо ввімкнути вручну нижче порогу, лишиться ввімкненим."
 
 #: src/window.rs:96
 msgid "Set in System Settings → Battery."
@@ -200,120 +306,79 @@ msgstr "Працює лише з Awake.app."
 msgid "This Mac has no battery."
 msgstr "Цей Mac не має акумулятора."
 
-#: src/window.rs:146
+#: src/window.rs:144
 msgid "Startup"
 msgstr "Запуск"
 
-#: src/window.rs:154
+#: src/window.rs:152
 msgid "Launch at login"
 msgstr "Відкривати під час входу"
 
-#: src/window.rs:162
+#: src/window.rs:160
 msgid "Keep awake at launch"
 msgstr "Вмикати під час запуску"
 
-#: src/window.rs:167
+#: src/window.rs:165
 msgid "Screen"
 msgstr "Екран"
 
-#: src/window.rs:168
+#: src/window.rs:166
 msgid "Let the display sleep"
 msgstr "Дозволити сон дисплея"
 
-#: src/window.rs:171
+#: src/window.rs:169
 msgid "Turn off when the screen locks"
 msgstr "Вимикати під час блокування екрана"
 
-#: src/window.rs:175
+#: src/window.rs:173
 msgid "Menu Bar"
 msgstr "Смуга меню"
 
-#: src/window.rs:176
+#: src/window.rs:174
 msgid "Show the time left"
 msgstr "Показувати залишок часу"
 
 #. Translators: the header of the rows Below 20% battery, In Low Power Mode, When unplugged.
-#: src/window.rs:188
+#: src/window.rs:186
 msgid "Turn Off Keep Awake"
 msgstr "Вимикати автоматично"
 
-#: src/window.rs:189
+#: src/window.rs:187
 #, rust-format
 msgid "Below {percent}% battery"
 msgstr "Заряд нижче {percent} %"
 
 #. Translators: the battery slider's ticks: 10%, 50%, 90%.
-#: src/window.rs:198
+#: src/window.rs:196
 #, rust-format
 msgid "{percent}%"
 msgstr "{percent} %"
 
-#: src/window.rs:201
+#: src/window.rs:199
 msgid "Battery level"
 msgstr "Рівень заряду"
 
-#: src/window.rs:209
+#: src/window.rs:207
 msgid "In Low Power Mode"
 msgstr "У режимі низького енергоспоживання"
 
-#: src/window.rs:213
+#: src/window.rs:211
 msgid "When unplugged"
 msgstr "Після від’єднання живлення"
 
-#: src/window.rs:227
+#: src/window.rs:225
 #, rust-format
 msgid "Version {version}"
 msgstr "Версія {version}"
 
-#: src/window.rs:228
+#: src/window.rs:226
 msgid "Keeps your Mac awake from the menu bar."
 msgstr "Не дає Mac заснути — зі смуги меню."
 
-#: src/window.rs:243
+#: src/window.rs:235
 msgid "Donate"
 msgstr "Підтримати"
 
-#: src/window.rs:257
+#: src/window.rs:248
 msgid "Acknowledgements"
 msgstr "Подяки"
-
-#: src/window.rs:277
-msgid "Check for Updates"
-msgstr "Перевірити оновлення"
-
-#: src/window.rs:280
-msgid "Checking for updates…"
-msgstr "Перевірка оновлень…"
-
-#: src/window.rs:281
-#, rust-format
-msgid "{name} is up to date."
-msgstr "Встановлено найновішу версію {name}."
-
-#: src/window.rs:283
-#, rust-format
-msgid "{name} {version} is available."
-msgstr "Доступний {name} {version}."
-
-#: src/window.rs:284
-msgid "Install and Relaunch"
-msgstr "Інсталювати й перезапустити"
-
-#: src/window.rs:286
-#, rust-format
-msgid "Downloading the update… {done}%"
-msgstr "Завантаження оновлення… {done} %"
-
-#: src/window.rs:289 src/window.rs:296
-#, rust-format
-msgid "The update failed: {why}"
-msgstr "Не вдалося оновити: {why}"
-
-#: src/window.rs:290
-#, rust-format
-msgid "Couldn't check for updates: {why}"
-msgstr "Не вдалося перевірити оновлення: {why}"
-
-#: src/window.rs:293
-msgid "Try Again"
-msgstr "Повторити"

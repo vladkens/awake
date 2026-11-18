@@ -1,11 +1,12 @@
 // Copyright (c) vladkens | MIT License | https://github.com/vladkens/awake
 //! The settings window, drawn by nimbo in the look of System Settings: toolbar tabs over pages of
 //! grey plates. General has the rows of startup, the screen and the menu bar; Battery the rules
-//! that turn it off, the floor's slider under its row; About the app, its updates, its links and
-//! thanks. A row has a switch and a grey line under its name where the name doesn't say it all (an
-//! ⓘ beside the name says why a row is off). The window is as high as the page shown. It shows what
-//! the app gives it ([`Shown`]) and hands what the user changes to the app from the loop
-//! ([`FormEvent`]), never while it draws. The app opens it when asked and drops it when closed.
+//! that turn it off, the floor's slider under its row; About the app, its links (Check for Updates…
+//! among them) and thanks. A row has a switch and a grey line under its name where the name doesn't
+//! say it all (an ⓘ beside the name says why a row is off). The window is as high as the page
+//! shown. It shows what the app gives it ([`Shown`]) and hands what the user changes to the app
+//! from the loop ([`FormEvent`]), never while it draws. The app opens it when asked and drops it
+//! when closed.
 
 use nimbo::autostart::State as Login;
 use nimbo::{
@@ -14,7 +15,6 @@ use nimbo::{
 };
 
 use crate::settings::{FLOOR_MAX, FLOOR_MIN, FLOOR_STEP, Settings};
-use crate::updater::{self, State as Update};
 
 const WIDTH: f32 = 480.0;
 /// The slider's middle tick, labelled as its ends.
@@ -107,8 +107,8 @@ pub struct Shown {
   pub battery: bool,
   /// Launch at login; `Err` where it can't (a bare executable).
   pub login: Result<Login, String>,
-  /// The updater's state, `None` where the app can't update.
-  pub update: Option<Update>,
+  /// The app can update itself: About has Check for Updates….
+  pub updates: bool,
 }
 
 /// What the user changed in the window.
@@ -116,10 +116,8 @@ pub struct Shown {
 pub enum FormEvent {
   Changed(Settings),
   Login(bool),
-  /// Check for Updates.
-  Check,
-  /// Install the update on offer, or try a failed one again.
-  Install,
+  /// Check for Updates…: the update's window.
+  CheckUpdates,
 }
 
 pub struct Form {
@@ -228,12 +226,6 @@ impl Form {
       ui.text(t!("Keeps your Mac awake from the menu bar."), fs.caption);
       ui.el(Style::new().h(px(6.0)));
 
-      let (text, button) = self.shown.update.clone().map(update).unwrap_or_default();
-      if let Some(text) = text {
-        ui.text(&text, fs.caption);
-        ui.el(Style::new().h(px(6.0)));
-      }
-
       ui.row(Style::new().gap(8.0), |ui| {
         let tip = |url: &'static str| url.trim_start_matches("https://");
         if ui.id(("link", "source")).help(tip(SOURCE)).button("GitHub").clicked {
@@ -244,10 +236,9 @@ impl Form {
           open(COFFEE);
         }
 
-        if let Some((label, event)) = button
-          && ui.id("update").button(&label).clicked
-        {
-          self.send(event);
+        // Only where the app can update.
+        if self.shown.updates && ui.id("updates").button(&t!("Check for Updates…")).clicked {
+          self.send(FormEvent::CheckUpdates);
         }
       });
     });
@@ -267,33 +258,6 @@ impl Form {
         });
       }
     });
-  }
-}
-
-/// The updater's line and its button, as Sparkle's About: Check for Updates, what the check found,
-/// the download.
-fn update(update: Update) -> (Option<String>, Option<(Localized, FormEvent)>) {
-  let name = crate::INFO.name;
-  let check = Some((t!("Check for Updates"), FormEvent::Check));
-  match update {
-    Update::Idle => (None, check),
-    Update::Checking => (Some(t!("Checking for updates…").to_string()), None),
-    Update::UpToDate => (Some(t!("{name} is up to date.", name)), check),
-    Update::Available(r) => {
-      let text = t!("{name} {version} is available.", name, version = updater::shown(&r.version));
-      (Some(text), Some((t!("Install and Relaunch"), FormEvent::Install)))
-    }
-    Update::Downloading(_, done) => (Some(t!("Downloading the update… {done}%", done)), None),
-    Update::Failed(r, why) => {
-      let (text, again) = match r {
-        Some(_) => (t!("The update failed: {why}", why), FormEvent::Install),
-        None => (t!("Couldn't check for updates: {why}", why), FormEvent::Check),
-      };
-
-      (Some(text), Some((t!("Try Again"), again)))
-    }
-    // The check at launch offers the release again, unless it can't update any more.
-    Update::Relaunched(why) => (Some(t!("The update failed: {why}", why)), None),
   }
 }
 
@@ -347,15 +311,14 @@ mod tests {
   use std::time::Duration;
 
   use nimbo::{Appearance, Event, Harness, Locale, harness};
-  use shipo::Release;
 
   use super::*;
 
   /// The window with a battery and launch at login on, in the language of `AWAKE_SHOTS_LOCALE`
   /// (`make shots LOCALE=…`), English without it.
-  fn window(update: Option<Update>) -> Harness<Form> {
+  fn window(updates: bool) -> Harness<Form> {
     let settings = Settings { floor_on: true, ..Settings::default() };
-    let shown = Shown { settings, battery: true, login: Ok(Login::Enabled), update };
+    let shown = Shown { settings, battery: true, login: Ok(Login::Enabled), updates };
     let (cfg, form) = Form::new(shown, |_| {});
     let mut h = Harness::new(form, cfg.size, 2.0);
     h.set_titlebar(Some(harness::mac_titlebar(cfg.title, false)));
@@ -366,7 +329,7 @@ mod tests {
     h
   }
 
-  /// Every page in both looks, and About in each state of the updater, as wide as the window and
+  /// Every page in both looks, as wide as the window and
   /// no higher than it fits; with `AWAKE_SHOTS` set (`make shots`), written there.
   #[test]
   fn every_page_renders() {
@@ -382,37 +345,19 @@ mod tests {
     };
 
     for (look, appearance) in [("light", Appearance::LIGHT), ("dark", Appearance::DARK)] {
-      let mut h = window(Some(Update::Idle));
+      let mut h = window(true);
       h.event(Event::Appearance(appearance));
       for page in [Page::General, Page::Battery, Page::About] {
         h.app_mut().page = page;
         shot(&mut h, &format!("{page:?}-{look}").to_lowercase());
       }
     }
-
-    let release = Release::test("1.2.0");
-    let why = "The Internet connection appears to be offline.".to_string();
-    let states = [
-      ("checking", Update::Checking),
-      ("up-to-date", Update::UpToDate),
-      ("available", Update::Available(release.clone())),
-      ("downloading", Update::Downloading(release.clone(), 42)),
-      ("install-failed", Update::Failed(Some(release), why.clone())),
-      ("check-failed", Update::Failed(None, why.clone())),
-      ("relaunched", Update::Relaunched(why)),
-    ];
-    for (name, update) in states {
-      let mut h = window(Some(update));
-      h.event(Event::Appearance(Appearance::LIGHT));
-      h.app_mut().page = Page::About;
-      shot(&mut h, &format!("about-{name}"));
-    }
   }
 
   /// The window speaks the language it is given: the tabs, the rows, the number in a row's name.
   #[test]
   fn the_window_speaks_russian() {
-    let mut h = window(None);
+    let mut h = window(false);
     h.set_locale(Locale::Tag("ru"), crate::LOCALES);
     h.app_mut().page = Page::Battery;
     h.wait(Duration::from_millis(100));
