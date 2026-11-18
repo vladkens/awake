@@ -340,6 +340,7 @@ mod tests {
     checked(&mut u, false, error());
     assert_eq!(u.state, failed, "offline: the failure stays");
     assert_eq!(u.install(), Some(r("1.2.0")), "trying again");
+
     u.failed(e.into());
     checked(&mut u, false, newer("1.3.0"));
     assert_eq!(u.state, State::Available(r("1.3.0")), "a newer one replaces it");
