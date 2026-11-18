@@ -166,7 +166,11 @@ fn update_item(state: Option<&updater::State>) -> Option<Item<Action>> {
     State::Failed(Some(r), _) => {
       Some(Item::button(Action::Update, &format!("Retry Update to {}", shown(&r.version))))
     }
-    State::Idle | State::Checking | State::UpToDate | State::Failed(None, _) => None,
+    State::Idle
+    | State::Checking
+    | State::UpToDate
+    | State::Failed(None, _)
+    | State::Relaunched(_) => None,
   }
 }
 
@@ -681,15 +685,17 @@ fn main() {
     .with_writer(std::io::stderr)
     .init();
 
-  if let Some(e) = updated {
+  if let Some(e) = &updated {
     tracing::warn!("the update that started this app failed: {e}");
   }
 
   tracing::info!(battery = ?power::battery(), low_power = power::low_power_mode(), "awake");
-  nimbo::app(INFO, start);
+  let why = updated.map(|e| updater::why(&e));
+  nimbo::app(INFO, move |main| start(main, why));
 }
 
-fn start(main: &mut Main) {
+/// The app, `failed` why the update that relaunched it failed.
+fn start(main: &mut Main, failed: Option<String>) {
   let tray = Tray::new(appkit::symbol(&["cup.and.saucer"]), &format!("{}: off", INFO.name));
   tray.on_open(|_, _| with_state(|state| state.on_menu(true)));
   tray.on_close(|_, _| with_state(|state| state.on_menu(false)));
@@ -699,6 +705,11 @@ fn start(main: &mut Main) {
   let updates = !cfg!(debug_assertions)
     && !updater::dev(VERSION)
     && shipo::supported().inspect_err(|e| tracing::info!("updates: {e}")).is_ok();
+
+  let mut updater = Updater::new(updates || shipo::faking());
+  if let Some(why) = failed {
+    updater.relaunched(why);
+  }
 
   let state = State {
     tray,
@@ -715,7 +726,7 @@ fn start(main: &mut Main) {
     tick: 0,
     icon: "cup.and.saucer",
     title: String::new(),
-    updater: Updater::new(updates || shipo::faking()),
+    updater,
     update_item: None,
     _watch: None,
   };

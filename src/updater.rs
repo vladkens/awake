@@ -35,19 +35,21 @@ pub fn dev(version: &str) -> bool {
   version.contains('-')
 }
 
-/// A check's answer as the [Updater] takes it: a missing feed (404) and one whose content or
-/// signature is wrong are nothing newer; another error is its text ([why]).
+/// A check's answer as the [Updater] takes it: a missing feed (404), as before the first release,
+/// is nothing newer; another error is its text ([why]), a feed whose content or signature is wrong
+/// too, so that a broken release shows to the person who checks.
 pub fn found(checked: shipo::Result<Option<Release>>) -> Result<Option<Release>, String> {
   checked.or_else(|e| match e {
-    Error::Http { status: Some(404), .. } | Error::Feed(_) | Error::Signature(_) => Ok(None),
+    Error::Http { status: Some(404), .. } => Ok(None),
     _ => Err(why(&e)),
   })
 }
 
-/// An error's text as About shows it: a request's without its URL, which the log has.
+/// An error's text as About shows it: a request's without its URL, which the log has, and an
+/// install's without its prefix, as About says the update failed.
 pub fn why(e: &Error) -> String {
   match e {
-    Error::Http { message, .. } => message.clone(),
+    Error::Http { message, .. } | Error::Install(message) => message.clone(),
     _ => e.to_string(),
   }
 }
@@ -77,6 +79,9 @@ pub enum State {
   /// Why the check, the download or the install failed: with the release when it was its
   /// download or install, which trying again downloads; else trying again checks.
   Failed(Option<Release>, String),
+  /// Why the install that relaunched the app failed, shown even where the app can no longer
+  /// update; the check that finds the release again offers it as failed, to try again.
+  Relaunched(String),
 }
 
 /// The state, and when to check.
@@ -97,9 +102,14 @@ impl Updater {
     Self { state: State::Idle, checking: None, answered: None, off: !on }
   }
 
-  /// What the menu and About show, `None` when the app can't update.
+  /// The app was relaunched by an install that failed, `why` ([why]).
+  pub fn relaunched(&mut self, why: String) {
+    self.state = State::Relaunched(why);
+  }
+
+  /// What the menu and About show, `None` when the app can't update and no install failed.
   pub fn showing(&self) -> Option<&State> {
-    (!self.off).then_some(&self.state)
+    (!self.off || matches!(self.state, State::Relaunched(_))).then_some(&self.state)
   }
 
   /// An automatic check: none answered yet, or the last a day before `now` (or after it, the clock
@@ -141,7 +151,10 @@ impl Updater {
 
     let offered = matches!(self.state, State::Available(_) | State::Failed(Some(_), _));
     self.state = match found {
-      Ok(Some(r)) => State::Available(r),
+      Ok(Some(r)) => match &self.state {
+        State::Relaunched(why) => State::Failed(Some(r), why.clone()),
+        _ => State::Available(r),
+      },
       Ok(None) if manual => State::UpToDate,
       Ok(None) if offered => State::Idle,
       Err(e) if manual => State::Failed(None, e),
@@ -202,23 +215,23 @@ mod tests {
     assert!(!dev("0.1.0") && !dev("1.2.0"));
   }
 
-  /// A missing feed and one whose content or signature is wrong are nothing newer; another error
-  /// shows its text.
+  /// A missing feed is nothing newer; another error shows its text, a bad feed's too.
   #[test]
-  fn a_missing_or_bad_feed_is_nothing_newer() {
+  fn a_missing_feed_is_nothing_newer() {
     let url = FEED.url.to_owned();
     let http =
       |status, message: &str| Error::Http { url: url.clone(), status, message: message.into() };
-    let quiet = [
-      http(Some(404), "HTTP 404"),
-      Error::Feed("no version, or a bad one".into()),
-      Error::Signature("no key of the app verifies it".into()),
+    assert_eq!(found(Err(http(Some(404), "HTTP 404"))), Ok(None));
+    let bad = [
+      (Error::Feed("its version line is repeated".into()), "invalid feed: its version line"),
+      (Error::Signature("no key of the app verifies it".into()), "bad feed signature: no key"),
     ];
-    for e in quiet {
-      let what = e.to_string();
-      assert_eq!(found(Err(e)), Ok(None), "{what}");
+    for (e, want) in bad {
+      assert!(found(Err(e)).is_err_and(|e| e.starts_with(want)), "{want}");
     }
 
+    let didnt_start = Error::Install("the new version didn't start".into());
+    assert_eq!(why(&didnt_start), "the new version didn't start");
     let offline = "The Internet connection appears to be offline.";
     assert_eq!(found(Err(http(None, offline))), Err(offline.into()));
     assert_eq!(found(Err(http(Some(503), "HTTP 503"))), Err("HTTP 503".into()));
@@ -262,6 +275,10 @@ mod tests {
     let mut u = Updater::new(false);
     assert_eq!(u.showing(), None);
     assert!(!u.due(NOW) && !u.check(true));
+
+    let mut u = Updater::new(false);
+    u.relaunched("the new version didn't start".into());
+    assert!(matches!(u.showing(), Some(State::Relaunched(_))), "its failed install does");
 
     let u = Updater::new(true);
     assert_eq!(u.showing(), Some(&State::Idle));
@@ -330,6 +347,23 @@ mod tests {
     u.failed(e.into());
     checked(&mut u, false, Ok(None));
     assert_eq!(u.state, State::Idle, "the feed took it back");
+
+    // Relaunched by a failed install: the release found again is offered to try again.
+    let mut u = Updater::new(true);
+    u.relaunched(e.into());
+    let relaunched = State::Relaunched(e.into());
+    assert_eq!(u.state, relaunched);
+
+    checked(&mut u, false, error());
+    checked(&mut u, false, Ok(None));
+    assert_eq!(u.state, relaunched, "offline, or the release withdrawn: it stays");
+    checked(&mut u, false, newer("1.2.0"));
+    assert_eq!(u.state, failed);
+
+    u.install();
+    u.failed(e.into());
+    checked(&mut u, false, newer("1.2.0"));
+    assert_eq!(u.state, State::Available(r("1.2.0")), "once");
 
     // A check answered during the download leaves it be.
     let mut u = Updater::new(true);
