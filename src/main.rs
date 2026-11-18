@@ -747,6 +747,11 @@ fn main() {
     std::process::exit(cli::main(&args));
   }
 
+  // Run bare beside the app (`awake` typed in a terminal): the help, not a second app.
+  if cli::running() {
+    std::process::exit(cli::main(&["help".into()]));
+  }
+
   tracing_subscriber::fmt()
     .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
     .with_writer(std::io::stderr)
