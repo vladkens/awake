@@ -7,7 +7,8 @@
 //! nimbo lacks is AppKit's, in `appkit.rs`. Updates come in place from GitHub's releases
 //! (`updater.rs`). Run with arguments, the binary is the command line (`cli.rs`), which asks the
 //! running app: on, off, the status, and holds by name or for a command, which keep the Mac awake
-//! beside the session.
+//! beside the session. The menu and the window speak the Mac's language from nimbo's gettext
+//! catalogs ([`LOCALES`]); the command line speaks English.
 //!
 //!   make run
 
@@ -20,12 +21,15 @@ mod window;
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::fmt::Display;
 use std::thread;
 use std::time::{Duration, SystemTime};
 
 use cli::Request;
 use nimbo::tray::{Item, Menu, Tray};
-use nimbo::{AppInfo, Main, Presence, Proxy, Shortcut, Window, autostart};
+use nimbo::{
+  AppInfo, Localizations, Localized, Main, Presence, Proxy, Shortcut, Window, autostart, t, tn,
+};
 use power::{Assertion, Battery, Change};
 use settings::Settings;
 use tracing_subscriber::EnvFilter;
@@ -44,6 +48,21 @@ const RELEASE: AppInfo =
 const DEV: AppInfo =
   AppInfo { id: "me.vladkens.awake-dev", name: "Awake Dev", presence: Presence::Accessory };
 const HOUR: Duration = minutes(60);
+/// The app's translations (`make i18n` keeps them): its English texts are the keys.
+const LOCALES: Localizations = &[
+  ("de", include_str!("../locales/de.po")),
+  ("es", include_str!("../locales/es.po")),
+  ("fr", include_str!("../locales/fr.po")),
+  ("it", include_str!("../locales/it.po")),
+  ("ja", include_str!("../locales/ja.po")),
+  ("ko", include_str!("../locales/ko.po")),
+  ("pl", include_str!("../locales/pl.po")),
+  ("pt-BR", include_str!("../locales/pt-BR.po")),
+  ("ru", include_str!("../locales/ru.po")),
+  ("tr", include_str!("../locales/tr.po")),
+  ("uk", include_str!("../locales/uk.po")),
+  ("zh-Hans", include_str!("../locales/zh-Hans.po")),
+];
 /// The timed sessions of the Keep Awake For submenu.
 const LENGTHS: [Duration; 6] =
   [minutes(15), minutes(30), HOUR, minutes(2 * 60), minutes(4 * 60), minutes(8 * 60)];
@@ -91,7 +110,7 @@ struct State {
   /// The holds' timer: one that fires for an earlier end finds another number.
   hold_timer: u64,
   /// Why the app last turned off by itself (not the user), until it is on again.
-  stopped: Option<String>,
+  stopped: Option<Why>,
   /// The session's timer: one that fires for an earlier session finds another number.
   timer: u64,
   /// The menu is open: its countdown ticks each second.
@@ -142,12 +161,12 @@ fn menu(
     Item::full(Action::Status, status).enabled(false),
     Item::Divider,
     Item::button(Action::Toggle, toggle(on)),
-    Item::submenu("Keep Awake For", Menu::new(lengths.collect())),
+    Item::submenu(&t!("Keep Awake For"), Menu::new(lengths.collect())),
     Item::Divider,
   ];
   items.extend(update);
-  items.push(Item::button(Action::Settings, "Settings…").key(Shortcut::char(',').cmd()));
-  let quit = Item::button(Action::Quit, &format!("Quit {}", INFO.name));
+  items.push(Item::button(Action::Settings, &t!("Settings…")).key(Shortcut::char(',').cmd()));
+  let quit = Item::button(Action::Quit, &t!("Quit {name}", name = INFO.name));
   items.push(quit.key(Shortcut::char('q').cmd()));
   Menu::new(items)
 }
@@ -157,14 +176,16 @@ fn update_item(state: Option<&updater::State>) -> Option<Item<Action>> {
   use updater::{State, shown};
   match state? {
     State::Available(r) => {
-      Some(Item::button(Action::Update, &format!("Update to {}", shown(&r.version))))
+      let title = t!("Update to {version}", version = shown(&r.version));
+      Some(Item::button(Action::Update, &title))
     }
     State::Downloading(r, done) => {
-      let title = format!("Downloading {}… {done}%", shown(&r.version));
+      let title = t!("Downloading {version}… {done}%", version = shown(&r.version), done);
       Some(Item::button(Action::Update, &title).enabled(false))
     }
     State::Failed(Some(r), _) => {
-      Some(Item::button(Action::Update, &format!("Retry Update to {}", shown(&r.version))))
+      let title = t!("Retry Update to {version}", version = shown(&r.version));
+      Some(Item::button(Action::Update, &title))
     }
     State::Idle
     | State::Checking
@@ -179,16 +200,43 @@ const fn minutes(m: u64) -> Duration {
 }
 
 fn toggle(on: bool) -> &'static str {
-  if on { "Turn Off" } else { "Keep Awake Indefinitely" }
+  if on { t!("Turn Off").as_str() } else { t!("Keep Awake Indefinitely").as_str() }
 }
 
 /// A length as the submenu names it: `15 Minutes`, `1 Hour`, `8 Hours`.
 fn title(length: Duration) -> String {
   match (length.as_secs() / 3600, length.as_secs() / 60) {
-    (0, m) => format!("{m} Minutes"),
-    (1, _) => "1 Hour".into(),
-    (h, _) => format!("{h} Hours"),
+    (0, m) => tn!("{n} Minute", "{n} Minutes", m),
+    (h, _) => tn!("{n} Hour", "{n} Hours", h),
   }
+}
+
+/// The language a text is said in: the app's, or English, the command line's.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Lang {
+  App,
+  English,
+}
+
+/// `text` in `lang`, its `{name}`s filled from `args`: the menu's status and the command line's
+/// are the same texts.
+fn say(lang: Lang, text: Localized, args: &[(&str, &dyn Display)]) -> String {
+  let mut rest = if lang == Lang::App { text.as_str() } else { text.key() };
+  // One pass: a value that holds a `{name}` itself, as a hold's name may, stays as it is.
+  let mut said = String::new();
+  while let Some((before, after)) = rest.split_once('{')
+    && let Some((key, after)) = after.split_once('}')
+  {
+    said += before;
+    match args.iter().find(|(name, _)| *name == key) {
+      Some((_, v)) => said += &v.to_string(),
+      None => said += &format!("{{{key}}}"),
+    }
+
+    rest = after;
+  }
+
+  said + rest
 }
 
 // MARK: State
@@ -233,7 +281,7 @@ impl State {
         if display && let Some(session) = self.session.take() {
           match Assertion::new(!settings.display_sleeps) {
             Some(assertion) => self.session = Some(Session { _assertion: assertion, ..session }),
-            None => self.stop(Some("the system refused".into())),
+            None => self.stop(Some(Why::Refused)),
           }
         }
 
@@ -265,7 +313,7 @@ impl State {
         self.hold();
       }
       Change::Locked if self.settings.off_on_lock && self.session.is_some() => {
-        self.stop(Some("screen locked".into()));
+        self.stop(Some(Why::Locked));
       }
       Change::Locked => {}
     }
@@ -275,8 +323,9 @@ impl State {
 
   fn open_settings(&mut self, main: &mut Main) {
     if self.window.is_none() {
-      let on: fn(FormEvent) = |event| with_state(|state| state.on_form(event));
-      let (cfg, form) = Form::new(self.shown(), self.proxy.clone(), on);
+      let proxy = self.proxy.clone();
+      let on = move |event| proxy.post(move |_| with_state(|state| state.on_form(event)));
+      let (cfg, form) = Form::new(self.shown(), on);
       let window = main.open(&cfg, form);
       window.on_close(|_| with_state(|state| state.window = None));
       self.window = Some(window);
@@ -298,7 +347,7 @@ impl State {
     }
 
     let Some(assertion) = Assertion::new(!self.settings.display_sleeps) else {
-      self.stop(Some("the system refused".into()));
+      self.stop(Some(Why::Refused));
       return;
     };
 
@@ -402,7 +451,7 @@ impl State {
 
   /// `awake status`: the menu's status, then a line per hold.
   fn report(&self, now: SystemTime) -> String {
-    let mut out = self.status(now) + "\n";
+    let mut out = self.status(now, Lang::English) + "\n";
     for ((name, conn), until) in &self.holds {
       let what = match (until, conn) {
         (Some(until), _) => format!("{} left", left(*until, now)),
@@ -416,7 +465,7 @@ impl State {
     out
   }
 
-  fn stop(&mut self, why: Option<String>) {
+  fn stop(&mut self, why: Option<Why>) {
     self.session = None;
     self.stopped = why;
     self.timer += 1;
@@ -556,7 +605,7 @@ impl State {
     Rules::new(&self.settings, power::low_power_mode(), power::battery())
   }
 
-  fn why_not(&self) -> Option<String> {
+  fn why_not(&self) -> Option<Why> {
     self.rules().why()
   }
 
@@ -570,46 +619,52 @@ impl State {
     }
   }
 
-  /// The menu's first line: on or off and why, the time left, the holds.
-  fn status(&self, now: SystemTime) -> String {
-    let mut status = match (&self.session, &self.held, &self.stopped) {
+  /// The menu's first line, and the command line's status: on or off and why, the time left, the
+  /// holds.
+  fn status(&self, now: SystemTime, lang: Lang) -> String {
+    let mut parts = match (&self.session, &self.held, self.stopped) {
       (Some(session), ..) => {
-        let mut status = String::from("Keeping awake");
-        if let Some(why) = session.waived.why() {
-          status += &format!(" despite {why}");
-        }
+        let on = match session.waived.why() {
+          Some(why) => say(lang, t!("Keeping awake despite {why}"), &[("why", &why.text(lang))]),
+          None => say(lang, t!("Keeping awake"), &[]),
+        };
 
-        if let Some(until) = session.until {
-          status += &format!(" · {} left", left(until, now));
-        }
-
-        status
+        let left = session.until.map(|until| left(until, now));
+        // Translators: {time} is a clock counting down: 59:42, 2:59:42.
+        let left = left.map(|time| say(lang, t!("{time} left"), &[("time", &time)]));
+        [Some(on), left].into_iter().flatten().collect()
       }
-      (None, Some(_), _) => "Keeping awake".into(),
-      (None, None, Some(why)) => format!("Turned off · {why}"),
-      (None, None, None) => "Off".into(),
+      (None, Some(_), _) => vec![say(lang, t!("Keeping awake"), &[])],
+      // Translators: the menu's first line after the app turned off by itself, before why.
+      (None, None, Some(why)) => vec![say(lang, t!("Turned off"), &[]), why.text(lang)],
+      // Translators: the menu's first line while nothing keeps the Mac awake.
+      (None, None, None) => vec![say(lang, t!("Off"), &[])],
     };
 
     if !self.holds.is_empty() {
       let mut names: Vec<_> = self.holds.keys().map(|(name, _)| name.as_str()).collect();
       names.dedup();
       let names = names.join(", ");
-      match (&self.held, self.why_not()) {
-        (Some(_), _) => status += &format!(" · for {names}"),
-        (None, Some(why)) => status += &format!(" · not for {names}: {why}"),
-        (None, None) => status += &format!(" · not for {names}: the system refused"),
-      }
+      let held = match (&self.held, self.why_not()) {
+        // Translators: {names} are the command line's holds, by the names it gave them.
+        (Some(_), _) => say(lang, t!("for {names}"), &[("names", &names)]),
+        (None, why) => {
+          let why = why.unwrap_or(Why::Refused).text(lang);
+          say(lang, t!("not for {names}: {why}"), &[("names", &names), ("why", &why)])
+        }
+      };
+
+      parts.push(held);
     }
 
-    status
+    parts.join(" · ")
   }
 
   fn show(&mut self) {
     let now = SystemTime::now();
-    let status = self.status(now);
+    let status = self.status(now, Lang::App);
     let on = self.session.is_some() || self.held.is_some();
-    let (icon, description) =
-      if on { ("cup.and.saucer.fill", "keeping awake") } else { ("cup.and.saucer", "off") };
+    let icon = if on { "cup.and.saucer.fill" } else { "cup.and.saucer" };
 
     if self.icon != icon {
       self.icon = icon;
@@ -627,7 +682,7 @@ impl State {
       self.title = title;
     }
 
-    self.tray.set_tooltip(&format!("{}: {description}", INFO.name));
+    self.tray.set_tooltip(&tooltip(on));
     // The same items as before: an open menu changes in place.
     let length = self.session.as_ref().and_then(|s| s.length);
     // An item come or gone would wait for the menu to close, the countdown with it: the item comes
@@ -694,17 +749,53 @@ impl Rules {
     }
   }
 
-  /// The first of them, as the menu says it.
-  fn why(self) -> Option<String> {
+  /// The first of them.
+  fn why(self) -> Option<Why> {
     if self.low_power {
-      return Some("Low Power Mode".into());
+      return Some(Why::LowPower);
     }
 
     if let Some(percent) = self.floor {
-      return Some(format!("low battery ({percent}%)"));
+      return Some(Why::Floor(percent));
     }
 
-    self.unplugged.then(|| "battery power".into())
+    self.unplugged.then_some(Why::Unplugged)
+  }
+}
+
+/// Why the Mac can't stay awake, or why the app turned off by itself.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Why {
+  LowPower,
+  /// The battery's charge, below the floor.
+  Floor(u32),
+  Unplugged,
+  Locked,
+  /// The system refused the assertion.
+  Refused,
+}
+
+impl Why {
+  /// As the status says it, after "Turned off" or "despite".
+  fn text(self, lang: Lang) -> String {
+    match self {
+      // Translators: why the Mac can't stay awake, after "Turned off ·" and in "Keeping awake
+      // despite {why}"; these and the next ones.
+      Why::LowPower => say(lang, t!("Low Power Mode"), &[]),
+      Why::Floor(percent) => say(lang, t!("low battery ({percent}%)"), &[("percent", &percent)]),
+      Why::Unplugged => say(lang, t!("battery power"), &[]),
+      Why::Locked => say(lang, t!("screen locked"), &[]),
+      Why::Refused => say(lang, t!("the system refused"), &[]),
+    }
+  }
+}
+
+/// The status item's tooltip, which VoiceOver reads too.
+fn tooltip(on: bool) -> String {
+  if on {
+    t!("{name}: keeping awake", name = INFO.name)
+  } else {
+    t!("{name}: off", name = INFO.name)
   }
 }
 
@@ -768,7 +859,8 @@ fn main() {
 
 /// The app, `failed` why the update that relaunched it failed.
 fn start(main: &mut Main, failed: Option<String>) {
-  let tray = Tray::new(appkit::symbol(&["cup.and.saucer"]), &format!("{}: off", INFO.name));
+  main.set_localizations(LOCALES);
+  let tray = Tray::new(appkit::symbol(&["cup.and.saucer"]), &tooltip(false));
   tray.on_open(|_, _| with_state(|state| state.on_menu(true)));
   tray.on_close(|_, _| with_state(|state| state.on_menu(false)));
   tray.on_item(|main, _, action| with_state(|state| state.on_tray(main, action)));
@@ -876,14 +968,49 @@ mod tests {
     assert_eq!(titles, want);
   }
 
-  fn rule(settings: &Settings, low_power: bool, battery: Option<Battery>) -> Option<String> {
+  /// In Russian the lengths take its three plurals, and a reason reads in Russian in the menu and
+  /// in English on the command line.
+  #[test]
+  fn the_menu_speaks_russian_and_the_command_line_english() {
+    struct Blank;
+    impl nimbo::App for Blank {
+      fn view(&mut self, _: &mut nimbo::Ui) {}
+    }
+
+    // The harness gives its language to this thread.
+    let mut h = nimbo::Harness::new(Blank, nimbo::Size::new(1.0, 1.0), 1.0);
+    h.set_locale(nimbo::Locale::Tag("ru"), LOCALES);
+    let titles: Vec<_> = LENGTHS.into_iter().map(title).collect();
+    assert_eq!(titles, ["15 минут", "30 минут", "1 час", "2 часа", "4 часа", "8 часов"]);
+    assert_eq!(Why::Floor(19).text(Lang::App), "низкий заряд (19\u{a0}%)");
+    assert_eq!(Why::Floor(19).text(Lang::English), "low battery (19%)");
+  }
+
+  /// Each catalog has every text translated and none fuzzy: `make i18n` brings them up to the
+  /// sources.
+  #[test]
+  fn every_catalog_is_complete() {
+    for (tag, po) in LOCALES {
+      for entry in po.split("\n\n").skip(1).filter(|e| !e.trim().is_empty()) {
+        assert!(!entry.contains("#, fuzzy"), "{tag}: fuzzy: {entry}");
+        let lines: Vec<&str> = entry.lines().collect();
+        for (i, line) in lines.iter().enumerate() {
+          let next = lines.get(i + 1).is_some_and(|l| l.starts_with('"'));
+          let empty = line.starts_with("msgstr") && line.ends_with(" \"\"") && !next;
+          assert!(!empty, "{tag}: not translated: {entry}");
+        }
+      }
+    }
+  }
+
+  fn rule(settings: &Settings, low_power: bool, battery: Option<Battery>) -> Option<Why> {
     Rules::new(settings, low_power, battery).why()
   }
 
   #[test]
   fn low_power_mode_ends_it_only_when_asked() {
     let asked = Settings { off_in_low_power: true, ..Settings::default() };
-    assert_eq!(rule(&asked, true, None).as_deref(), Some("Low Power Mode"));
+    assert_eq!(rule(&asked, true, None), Some(Why::LowPower));
     assert_eq!(rule(&asked, false, None), None);
     assert_eq!(rule(&Settings::default(), true, None), None);
   }
@@ -891,7 +1018,7 @@ mod tests {
   #[test]
   fn the_floor_ends_it_on_battery_only() {
     let floor = Settings { floor_on: true, floor: 20, ..Settings::default() };
-    assert_eq!(rule(&floor, false, battery(19, true)).as_deref(), Some("low battery (19%)"));
+    assert_eq!(rule(&floor, false, battery(19, true)), Some(Why::Floor(19)));
     assert_eq!(rule(&floor, false, battery(20, true)), None, "below the floor, not at it");
     assert_eq!(rule(&floor, false, battery(5, false)), None);
     assert_eq!(rule(&floor, false, None), None);
@@ -901,7 +1028,7 @@ mod tests {
   #[test]
   fn unplugging_ends_it_when_asked() {
     let asked = Settings { off_unplugged: true, ..Settings::default() };
-    assert_eq!(rule(&asked, false, battery(90, true)).as_deref(), Some("battery power"));
+    assert_eq!(rule(&asked, false, battery(90, true)), Some(Why::Unplugged));
     assert_eq!(rule(&asked, false, battery(90, false)), None);
     assert_eq!(rule(&Settings::default(), false, battery(90, true)), None);
   }
@@ -916,24 +1043,44 @@ mod tests {
       let new = rules.without(waived);
       if new.is_empty() { Ok(rules.and(waived)) } else { Err(new.why()) }
     };
-    let ended = |why: &str| Err(Some(why.to_string()));
+    let ended = |why| Err(Some(why));
 
     // Turned on by hand in Low Power Mode, on battery.
     let waived = Rules::new(&settings, true, battery(50, true));
     let waived = step(waived, true, battery(30, true)).expect("only Low Power Mode");
-    assert_eq!(waived.why().as_deref(), Some("Low Power Mode"));
-    assert_eq!(step(waived, true, battery(19, true)), ended("low battery (19%)"));
-    assert_eq!(step(waived, false, battery(19, true)), ended("low battery (19%)"));
+    assert_eq!(waived.why(), Some(Why::LowPower));
+    assert_eq!(step(waived, true, battery(19, true)), ended(Why::Floor(19)));
+    assert_eq!(step(waived, false, battery(19, true)), ended(Why::Floor(19)));
 
     // Low Power Mode turned off clears its waiver: on again, it ends the session.
     let waived = step(waived, false, battery(30, true)).expect("no rule");
     assert!(waived.is_empty());
-    assert_eq!(step(waived, true, battery(30, true)), ended("Low Power Mode"));
+    assert_eq!(step(waived, true, battery(30, true)), ended(Why::LowPower));
 
     // A waived floor stays waived as the charge falls, and the status shows the charge.
     let waived = Rules::new(&settings, false, battery(15, true));
     let waived = step(waived, false, battery(12, true)).expect("the floor waived");
-    assert_eq!(waived.why().as_deref(), Some("low battery (12%)"));
-    assert_eq!(step(waived, true, battery(12, true)), ended("Low Power Mode"));
+    assert_eq!(waived.why(), Some(Why::Floor(12)));
+    assert_eq!(step(waived, true, battery(12, true)), ended(Why::LowPower));
+  }
+
+  #[test]
+  fn the_command_line_says_why_in_english() {
+    let why = [Why::LowPower, Why::Floor(19), Why::Unplugged, Why::Locked, Why::Refused];
+    let want = [
+      "Low Power Mode",
+      "low battery (19%)",
+      "battery power",
+      "screen locked",
+      "the system refused",
+    ];
+    assert_eq!(why.map(|why| why.text(Lang::English)), want);
+  }
+
+  #[test]
+  fn a_hold_named_like_a_placeholder_keeps_its_name() {
+    let text = t!("not for {names}: {why}");
+    let said = say(Lang::English, text, &[("names", &"backup-{why}"), ("why", &"screen locked")]);
+    assert_eq!(said, "not for backup-{why}: screen locked");
   }
 }

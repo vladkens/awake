@@ -31,7 +31,10 @@ rustdoc (`src/main.rs` first), dependencies `Cargo.toml`, checks the `Makefile`.
   app's state is borrowed.
 - Nothing runs while nothing changes: the battery, Low Power Mode and wake come as notifications,
   timers only while a timed session runs. No polling.
-- The text the app shows is English.
+- The text the app shows is English in the code, marked with nimbo's `t!` / `tn!`, and
+  translated in `locales/<lang>.po`, one per language: `make i18n` merges a change into them
+  and checks them, `make shots LOCALE=<lang>` draws the window in one to see that it fits. The
+  command line (`src/cli.rs`) and its status stay English.
 
 ## Tests
 

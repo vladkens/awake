@@ -1,0 +1,314 @@
+# Awake's strings in Korean, as macOS names its terms (`make i18n` merges the code's
+# changes). MIT License, as Awake.
+msgid ""
+msgstr ""
+"Project-Id-Version: Awake\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-18 10:21+0200\n"
+"PO-Revision-Date: 2026-11-18 10:00+0200\n"
+"Last-Translator: \n"
+"Language-Team: none\n"
+"Language: ko\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: src/main.rs:164
+msgid "Keep Awake For"
+msgstr "다음 시간 동안 깨어 있기"
+
+#: src/main.rs:168
+msgid "Settings…"
+msgstr "설정…"
+
+#: src/main.rs:169
+#, rust-format
+msgid "Quit {name}"
+msgstr "{name} 종료"
+
+#: src/main.rs:179
+#, rust-format
+msgid "Update to {version}"
+msgstr "{version}(으)로 업데이트"
+
+#: src/main.rs:183
+#, rust-format
+msgid "Downloading {version}… {done}%"
+msgstr "{version} 다운로드 중… {done}%"
+
+#: src/main.rs:187
+#, rust-format
+msgid "Retry Update to {version}"
+msgstr "{version}(으)로 업데이트 재시도"
+
+#: src/main.rs:203
+msgid "Keep Awake Indefinitely"
+msgstr "무기한 깨어 있기"
+
+#: src/main.rs:203
+msgid "Turn Off"
+msgstr "끄기"
+
+#: src/main.rs:209
+#, rust-format
+msgid "{n} Minute"
+msgid_plural "{n} Minutes"
+msgstr[0] "{n}분"
+
+#: src/main.rs:210
+#, rust-format
+msgid "{n} Hour"
+msgid_plural "{n} Hours"
+msgstr[0] "{n}시간"
+
+#: src/main.rs:628
+#, rust-format
+msgid "Keeping awake despite {why}"
+msgstr "깨어 있음({why}에도 불구하고)"
+
+#: src/main.rs:629 src/main.rs:637
+msgid "Keeping awake"
+msgstr "깨어 있음"
+
+#. Translators: {time} is a clock counting down: 59:42, 2:59:42.
+#: src/main.rs:634
+#, rust-format
+msgid "{time} left"
+msgstr "{time} 남음"
+
+#. Translators: the menu's first line after the app turned off by itself, before why.
+#: src/main.rs:639
+msgid "Turned off"
+msgstr "꺼짐"
+
+#. Translators: the menu's first line while nothing keeps the Mac awake.
+#: src/main.rs:641
+msgid "Off"
+msgstr "꺼짐"
+
+#. Translators: {names} are the command line's holds, by the names it gave them.
+#: src/main.rs:650
+#, rust-format
+msgid "for {names}"
+msgstr "{names} 요청"
+
+#: src/main.rs:653 src/main.rs:1082
+#, rust-format
+msgid "not for {names}: {why}"
+msgstr "{names} 제외: {why}"
+
+#. Translators: why the Mac can't stay awake, after "Turned off ·" and in "Keeping awake
+#. despite {why}"; these and the next ones.
+#: src/main.rs:784
+msgid "Low Power Mode"
+msgstr "저전력 모드"
+
+#: src/main.rs:785
+#, rust-format
+msgid "low battery ({percent}%)"
+msgstr "배터리 부족({percent}%)"
+
+#: src/main.rs:786
+msgid "battery power"
+msgstr "배터리 전원"
+
+#: src/main.rs:787
+msgid "screen locked"
+msgstr "화면 잠김"
+
+#: src/main.rs:788
+msgid "the system refused"
+msgstr "시스템이 거부함"
+
+#: src/main.rs:796
+#, rust-format
+msgid "{name}: keeping awake"
+msgstr "{name}: 깨어 있음"
+
+#: src/main.rs:798
+#, rust-format
+msgid "{name}: off"
+msgstr "{name}: 꺼짐"
+
+#: src/window.rs:71
+msgid "General"
+msgstr "일반"
+
+#: src/window.rs:72
+msgid "Battery"
+msgstr "배터리"
+
+#: src/window.rs:73
+msgid "About"
+msgstr "정보"
+
+#: src/window.rs:82
+msgid "The UI toolkit Awake is drawn with"
+msgstr "Awake를 그리는 UI 툴킷"
+
+#: src/window.rs:85
+msgid "The app that inspired Awake"
+msgstr "Awake에 영감을 준 앱"
+
+#: src/window.rs:90
+msgid "Only the Mac stays awake."
+msgstr "Mac만 깨어 있습니다."
+
+#: src/window.rs:91
+msgid "Locking the screen ends Keep Awake."
+msgstr "화면을 잠그면 깨어 있기가 종료됩니다."
+
+#: src/window.rs:92
+msgid "Beside the cup, while a timed session runs."
+msgstr "시간 지정 세션 중에 컵 옆에 표시합니다."
+
+#: src/window.rs:93
+msgid "Awake opens when you log in."
+msgstr "로그인하면 Awake가 열립니다."
+
+#: src/window.rs:94
+msgid "Keep Awake turns on as Awake opens."
+msgstr "Awake가 열리면 깨어 있기가 켜집니다."
+
+#: src/window.rs:95
+msgid "On battery. Turned on by hand below it, it stays on."
+msgstr "배터리 사용 시. 이 아래에서 직접 켜면 계속 켜져 있습니다."
+
+#: src/window.rs:96
+msgid "Set in System Settings → Battery."
+msgstr "시스템 설정 → 배터리에서 설정합니다."
+
+#: src/window.rs:97
+msgid "Keep Awake runs only on the power adapter."
+msgstr "깨어 있기는 전원 어댑터에 연결된 동안에만 작동합니다."
+
+#: src/window.rs:98
+msgid "Allow it in System Settings → Login Items."
+msgstr "시스템 설정 → 로그인 항목에서 허용하세요."
+
+#: src/window.rs:99
+msgid "Works only from Awake.app."
+msgstr "Awake.app에서만 작동합니다."
+
+#: src/window.rs:100
+msgid "This Mac has no battery."
+msgstr "이 Mac에는 배터리가 없습니다."
+
+#: src/window.rs:146
+msgid "Startup"
+msgstr "시작"
+
+#: src/window.rs:154
+msgid "Launch at login"
+msgstr "로그인 시 열기"
+
+#: src/window.rs:162
+msgid "Keep awake at launch"
+msgstr "실행 시 깨어 있기"
+
+#: src/window.rs:167
+msgid "Screen"
+msgstr "화면"
+
+#: src/window.rs:168
+msgid "Let the display sleep"
+msgstr "디스플레이 잠자기 허용"
+
+#: src/window.rs:171
+msgid "Turn off when the screen locks"
+msgstr "화면이 잠기면 끄기"
+
+#: src/window.rs:175
+msgid "Menu Bar"
+msgstr "메뉴 막대"
+
+#: src/window.rs:176
+msgid "Show the time left"
+msgstr "남은 시간 표시"
+
+#. Translators: the header of the rows Below 20% battery, In Low Power Mode, When unplugged.
+#: src/window.rs:188
+msgid "Turn Off Keep Awake"
+msgstr "깨어 있기 끄기"
+
+#: src/window.rs:189
+#, rust-format
+msgid "Below {percent}% battery"
+msgstr "배터리 {percent}% 미만"
+
+#. Translators: the battery slider's ticks: 10%, 50%, 90%.
+#: src/window.rs:198
+#, rust-format
+msgid "{percent}%"
+msgstr "{percent}%"
+
+#: src/window.rs:201
+msgid "Battery level"
+msgstr "배터리 잔량"
+
+#: src/window.rs:209
+msgid "In Low Power Mode"
+msgstr "저전력 모드일 때"
+
+#: src/window.rs:213
+msgid "When unplugged"
+msgstr "전원 연결 해제 시"
+
+#: src/window.rs:227
+#, rust-format
+msgid "Version {version}"
+msgstr "버전 {version}"
+
+#: src/window.rs:228
+msgid "Keeps your Mac awake from the menu bar."
+msgstr "메뉴 막대에서 Mac을 깨어 있게 합니다."
+
+#: src/window.rs:243
+msgid "Donate"
+msgstr "후원하기"
+
+#: src/window.rs:257
+msgid "Acknowledgements"
+msgstr "감사의 말"
+
+#: src/window.rs:277
+msgid "Check for Updates"
+msgstr "업데이트 확인"
+
+#: src/window.rs:280
+msgid "Checking for updates…"
+msgstr "업데이트 확인 중…"
+
+#: src/window.rs:281
+#, rust-format
+msgid "{name} is up to date."
+msgstr "{name}이(가) 최신 버전입니다."
+
+#: src/window.rs:283
+#, rust-format
+msgid "{name} {version} is available."
+msgstr "{name} {version}을(를) 사용할 수 있습니다."
+
+#: src/window.rs:284
+msgid "Install and Relaunch"
+msgstr "설치 후 다시 실행"
+
+#: src/window.rs:286
+#, rust-format
+msgid "Downloading the update… {done}%"
+msgstr "업데이트 다운로드 중… {done}%"
+
+#: src/window.rs:289 src/window.rs:296
+#, rust-format
+msgid "The update failed: {why}"
+msgstr "업데이트 실패: {why}"
+
+#: src/window.rs:290
+#, rust-format
+msgid "Couldn't check for updates: {why}"
+msgstr "업데이트를 확인할 수 없음: {why}"
+
+#: src/window.rs:293
+msgid "Try Again"
+msgstr "다시 시도"

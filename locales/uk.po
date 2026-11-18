@@ -1,0 +1,319 @@
+# Awake's strings in Ukrainian, as macOS names its terms (`make i18n` merges the code's
+# changes). MIT License, as Awake.
+msgid ""
+msgstr ""
+"Project-Id-Version: Awake\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-18 10:21+0200\n"
+"PO-Revision-Date: 2026-11-18 10:00+0200\n"
+"Last-Translator: \n"
+"Language-Team: none\n"
+"Language: uk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#: src/main.rs:164
+msgid "Keep Awake For"
+msgstr "Не засинати протягом"
+
+#: src/main.rs:168
+msgid "Settings…"
+msgstr "Параметри…"
+
+#: src/main.rs:169
+#, rust-format
+msgid "Quit {name}"
+msgstr "Вийти з {name}"
+
+#: src/main.rs:179
+#, rust-format
+msgid "Update to {version}"
+msgstr "Оновити до {version}"
+
+#: src/main.rs:183
+#, rust-format
+msgid "Downloading {version}… {done}%"
+msgstr "Завантаження {version}… {done} %"
+
+#: src/main.rs:187
+#, rust-format
+msgid "Retry Update to {version}"
+msgstr "Повторити оновлення до {version}"
+
+#: src/main.rs:203
+msgid "Keep Awake Indefinitely"
+msgstr "Не засинати безстроково"
+
+#: src/main.rs:203
+msgid "Turn Off"
+msgstr "Вимкнути"
+
+#: src/main.rs:209
+#, rust-format
+msgid "{n} Minute"
+msgid_plural "{n} Minutes"
+msgstr[0] "{n} хвилина"
+msgstr[1] "{n} хвилини"
+msgstr[2] "{n} хвилин"
+
+#: src/main.rs:210
+#, rust-format
+msgid "{n} Hour"
+msgid_plural "{n} Hours"
+msgstr[0] "{n} година"
+msgstr[1] "{n} години"
+msgstr[2] "{n} годин"
+
+#: src/main.rs:628
+#, rust-format
+msgid "Keeping awake despite {why}"
+msgstr "Не дає заснути попри {why}"
+
+#: src/main.rs:629 src/main.rs:637
+msgid "Keeping awake"
+msgstr "Не дає заснути"
+
+#. Translators: {time} is a clock counting down: 59:42, 2:59:42.
+#: src/main.rs:634
+#, rust-format
+msgid "{time} left"
+msgstr "лишилося {time}"
+
+#. Translators: the menu's first line after the app turned off by itself, before why.
+#: src/main.rs:639
+msgid "Turned off"
+msgstr "Вимкнено"
+
+#. Translators: the menu's first line while nothing keeps the Mac awake.
+#: src/main.rs:641
+msgid "Off"
+msgstr "Вимкнено"
+
+#. Translators: {names} are the command line's holds, by the names it gave them.
+#: src/main.rs:650
+#, rust-format
+msgid "for {names}"
+msgstr "для {names}"
+
+#: src/main.rs:653 src/main.rs:1082
+#, rust-format
+msgid "not for {names}: {why}"
+msgstr "не для {names}: {why}"
+
+#. Translators: why the Mac can't stay awake, after "Turned off ·" and in "Keeping awake
+#. despite {why}"; these and the next ones.
+#: src/main.rs:784
+msgid "Low Power Mode"
+msgstr "Режим низького енергоспоживання"
+
+#: src/main.rs:785
+#, rust-format
+msgid "low battery ({percent}%)"
+msgstr "низький заряд ({percent} %)"
+
+#: src/main.rs:786
+msgid "battery power"
+msgstr "живлення від акумулятора"
+
+#: src/main.rs:787
+msgid "screen locked"
+msgstr "екран заблоковано"
+
+#: src/main.rs:788
+msgid "the system refused"
+msgstr "система відмовила"
+
+#: src/main.rs:796
+#, rust-format
+msgid "{name}: keeping awake"
+msgstr "{name}: не дає заснути"
+
+#: src/main.rs:798
+#, rust-format
+msgid "{name}: off"
+msgstr "{name}: вимкнено"
+
+#: src/window.rs:71
+msgid "General"
+msgstr "Загальні"
+
+#: src/window.rs:72
+msgid "Battery"
+msgstr "Акумулятор"
+
+#: src/window.rs:73
+msgid "About"
+msgstr "Про програму"
+
+#: src/window.rs:82
+msgid "The UI toolkit Awake is drawn with"
+msgstr "UI-тулкіт, яким намальовано Awake"
+
+#: src/window.rs:85
+msgid "The app that inspired Awake"
+msgstr "Програма, що надихнула Awake"
+
+#: src/window.rs:90
+msgid "Only the Mac stays awake."
+msgstr "Не засинає лише Mac."
+
+#: src/window.rs:91
+msgid "Locking the screen ends Keep Awake."
+msgstr "Блокування екрана вимикає Awake."
+
+#: src/window.rs:92
+msgid "Beside the cup, while a timed session runs."
+msgstr "Поруч із чашкою, поки триває сеанс на час."
+
+#: src/window.rs:93
+msgid "Awake opens when you log in."
+msgstr "Awake відкривається під час входу."
+
+#: src/window.rs:94
+msgid "Keep Awake turns on as Awake opens."
+msgstr "Awake вмикається одразу під час запуску."
+
+#: src/window.rs:95
+msgid "On battery. Turned on by hand below it, it stays on."
+msgstr "Від акумулятора. Якщо ввімкнути вручну нижче порогу, лишиться ввімкненим."
+
+#: src/window.rs:96
+msgid "Set in System Settings → Battery."
+msgstr "Задається в Системних параметрах → Акумулятор."
+
+#: src/window.rs:97
+msgid "Keep Awake runs only on the power adapter."
+msgstr "Awake працює, лише поки Mac під’єднано до живлення."
+
+#: src/window.rs:98
+msgid "Allow it in System Settings → Login Items."
+msgstr "Дозвольте в Системних параметрах → Об’єкти входу."
+
+#: src/window.rs:99
+msgid "Works only from Awake.app."
+msgstr "Працює лише з Awake.app."
+
+#: src/window.rs:100
+msgid "This Mac has no battery."
+msgstr "Цей Mac не має акумулятора."
+
+#: src/window.rs:146
+msgid "Startup"
+msgstr "Запуск"
+
+#: src/window.rs:154
+msgid "Launch at login"
+msgstr "Відкривати під час входу"
+
+#: src/window.rs:162
+msgid "Keep awake at launch"
+msgstr "Вмикати під час запуску"
+
+#: src/window.rs:167
+msgid "Screen"
+msgstr "Екран"
+
+#: src/window.rs:168
+msgid "Let the display sleep"
+msgstr "Дозволити сон дисплея"
+
+#: src/window.rs:171
+msgid "Turn off when the screen locks"
+msgstr "Вимикати під час блокування екрана"
+
+#: src/window.rs:175
+msgid "Menu Bar"
+msgstr "Смуга меню"
+
+#: src/window.rs:176
+msgid "Show the time left"
+msgstr "Показувати залишок часу"
+
+#. Translators: the header of the rows Below 20% battery, In Low Power Mode, When unplugged.
+#: src/window.rs:188
+msgid "Turn Off Keep Awake"
+msgstr "Вимикати автоматично"
+
+#: src/window.rs:189
+#, rust-format
+msgid "Below {percent}% battery"
+msgstr "Заряд нижче {percent} %"
+
+#. Translators: the battery slider's ticks: 10%, 50%, 90%.
+#: src/window.rs:198
+#, rust-format
+msgid "{percent}%"
+msgstr "{percent} %"
+
+#: src/window.rs:201
+msgid "Battery level"
+msgstr "Рівень заряду"
+
+#: src/window.rs:209
+msgid "In Low Power Mode"
+msgstr "У режимі низького енергоспоживання"
+
+#: src/window.rs:213
+msgid "When unplugged"
+msgstr "Після від’єднання живлення"
+
+#: src/window.rs:227
+#, rust-format
+msgid "Version {version}"
+msgstr "Версія {version}"
+
+#: src/window.rs:228
+msgid "Keeps your Mac awake from the menu bar."
+msgstr "Не дає Mac заснути — зі смуги меню."
+
+#: src/window.rs:243
+msgid "Donate"
+msgstr "Підтримати"
+
+#: src/window.rs:257
+msgid "Acknowledgements"
+msgstr "Подяки"
+
+#: src/window.rs:277
+msgid "Check for Updates"
+msgstr "Перевірити оновлення"
+
+#: src/window.rs:280
+msgid "Checking for updates…"
+msgstr "Перевірка оновлень…"
+
+#: src/window.rs:281
+#, rust-format
+msgid "{name} is up to date."
+msgstr "Встановлено найновішу версію {name}."
+
+#: src/window.rs:283
+#, rust-format
+msgid "{name} {version} is available."
+msgstr "Доступний {name} {version}."
+
+#: src/window.rs:284
+msgid "Install and Relaunch"
+msgstr "Інсталювати й перезапустити"
+
+#: src/window.rs:286
+#, rust-format
+msgid "Downloading the update… {done}%"
+msgstr "Завантаження оновлення… {done} %"
+
+#: src/window.rs:289 src/window.rs:296
+#, rust-format
+msgid "The update failed: {why}"
+msgstr "Не вдалося оновити: {why}"
+
+#: src/window.rs:290
+#, rust-format
+msgid "Couldn't check for updates: {why}"
+msgstr "Не вдалося перевірити оновлення: {why}"
+
+#: src/window.rs:293
+msgid "Try Again"
+msgstr "Повторити"

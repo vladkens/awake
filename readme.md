@@ -13,6 +13,7 @@ Keeps your Mac awake from the menu bar, like [KeepingYouAwake](https://github.co
 - Settings… in the menu, or open the app again, to get the settings window.
 - Updates itself from the releases here: checked once a day, Update to … in the menu installs it and relaunches; About has Check for Updates.
 - A command line for scripts and agents: `awake on 1h`, `awake off`, `awake status`, named holds, and `awake -- <command>`.
+- In English and 12 more languages: the Mac's, or the one set for Awake in System Settings.
 - Idle at 0 % CPU: the battery, Low Power Mode, wake and the screen lock come as notifications, nothing polls.
 
 ## 📥 Install
