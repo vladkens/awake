@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Awake\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-18 10:21+0200\n"
+"POT-Creation-Date: 2026-11-18 12:11+0200\n"
 "PO-Revision-Date: 2026-11-18 10:00+0200\n"
 "Last-Translator: \n"
 "Language-Team: none\n"
@@ -15,43 +15,54 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n==1 ? 0 : n%10>=2 && n%10<=4 && (n%100<10 "
 "|| n%100>=20) ? 1 : 2);\n"
 
-#: src/main.rs:164
+#: src/main.rs:170
 msgid "Keep Awake For"
 msgstr "Nie usypiaj przez"
 
-#: src/main.rs:168
+#: src/main.rs:172
 msgid "Settings…"
 msgstr "Ustawienia…"
 
-#: src/main.rs:169
+#: src/main.rs:175
 #, rust-format
 msgid "Quit {name}"
 msgstr "Zakończ {name}"
 
-#: src/main.rs:179
+#: src/main.rs:184
 #, rust-format
-msgid "Update to {version}"
-msgstr "Uaktualnij do {version}"
+msgid "Update Available: {version}…"
+msgstr "Dostępne uaktualnienie: {version}…"
 
-#: src/main.rs:183
+#: src/main.rs:185
 #, rust-format
-msgid "Downloading {version}… {done}%"
-msgstr "Pobieranie {version}… {done}%"
+msgid "Downloading Update: {done}%"
+msgstr "Pobieranie uaktualnienia: {done}%"
+
+#: src/main.rs:186
+msgid "Restarting to Update…"
+msgstr "Restart w celu uaktualnienia…"
 
 #: src/main.rs:187
-#, rust-format
-msgid "Retry Update to {version}"
-msgstr "Ponów uaktualnienie do {version}"
+msgid "Update Failed…"
+msgstr "Uaktualnienie nie powiodło się…"
 
-#: src/main.rs:203
+#: src/main.rs:197
+msgid "Checking for Updates…"
+msgstr "Sprawdzanie uaktualnień…"
+
+#: src/main.rs:198 src/window.rs:240
+msgid "Check for Updates…"
+msgstr "Sprawdź uaktualnienia…"
+
+#: src/main.rs:209
 msgid "Keep Awake Indefinitely"
 msgstr "Nie usypiaj bez limitu"
 
-#: src/main.rs:203
+#: src/main.rs:209
 msgid "Turn Off"
 msgstr "Wyłącz"
 
-#: src/main.rs:209
+#: src/main.rs:215
 #, rust-format
 msgid "{n} Minute"
 msgid_plural "{n} Minutes"
@@ -59,7 +70,7 @@ msgstr[0] "{n} minuta"
 msgstr[1] "{n} minuty"
 msgstr[2] "{n} minut"
 
-#: src/main.rs:210
+#: src/main.rs:216
 #, rust-format
 msgid "{n} Hour"
 msgid_plural "{n} Hours"
@@ -67,74 +78,168 @@ msgstr[0] "{n} godzina"
 msgstr[1] "{n} godziny"
 msgstr[2] "{n} godzin"
 
-#: src/main.rs:628
+#: src/main.rs:720
 #, rust-format
 msgid "Keeping awake despite {why}"
 msgstr "Nie usypia mimo: {why}"
 
-#: src/main.rs:629 src/main.rs:637
+#: src/main.rs:721 src/main.rs:729
 msgid "Keeping awake"
 msgstr "Nie usypia"
 
 #. Translators: {time} is a clock counting down: 59:42, 2:59:42.
-#: src/main.rs:634
+#: src/main.rs:726
 #, rust-format
 msgid "{time} left"
 msgstr "zostało {time}"
 
 #. Translators: the menu's first line after the app turned off by itself, before why.
-#: src/main.rs:639
+#: src/main.rs:731
 msgid "Turned off"
 msgstr "Wyłączono"
 
 #. Translators: the menu's first line while nothing keeps the Mac awake.
-#: src/main.rs:641
+#: src/main.rs:733
 msgid "Off"
 msgstr "Wyłączone"
 
 #. Translators: {names} are the command line's holds, by the names it gave them.
-#: src/main.rs:650
+#: src/main.rs:742
 #, rust-format
 msgid "for {names}"
 msgstr "dla {names}"
 
-#: src/main.rs:653 src/main.rs:1082
+#: src/main.rs:745 src/main.rs:1206
 #, rust-format
 msgid "not for {names}: {why}"
 msgstr "nie dla {names}: {why}"
 
 #. Translators: why the Mac can't stay awake, after "Turned off ·" and in "Keeping awake
 #. despite {why}"; these and the next ones.
-#: src/main.rs:784
+#: src/main.rs:882
 msgid "Low Power Mode"
 msgstr "Tryb niskiego zużycia energii"
 
-#: src/main.rs:785
+#: src/main.rs:883
 #, rust-format
 msgid "low battery ({percent}%)"
 msgstr "niski poziom baterii ({percent}%)"
 
-#: src/main.rs:786
+#: src/main.rs:884
 msgid "battery power"
 msgstr "zasilanie z baterii"
 
-#: src/main.rs:787
+#: src/main.rs:885
 msgid "screen locked"
 msgstr "ekran zablokowany"
 
-#: src/main.rs:788
+#: src/main.rs:886
 msgid "the system refused"
 msgstr "system odmówił"
 
-#: src/main.rs:796
+#: src/main.rs:894
 #, rust-format
 msgid "{name}: keeping awake"
 msgstr "{name}: nie usypia"
 
-#: src/main.rs:798
+#: src/main.rs:896
 #, rust-format
 msgid "{name}: off"
 msgstr "{name}: wyłączone"
+
+#: src/updater.rs:308
+msgid "Software Update"
+msgstr "Uaktualnienia"
+
+#: src/updater.rs:338
+msgid "Checking for updates…"
+msgstr "Sprawdzanie uaktualnień…"
+
+#: src/updater.rs:340
+msgid "You’re up to date!"
+msgstr "Masz najnowszą wersję"
+
+#: src/updater.rs:341
+#, rust-format
+msgid "{name} {current} is the newest version."
+msgstr "{name} {current} to najnowsza wersja."
+
+#: src/updater.rs:344
+#, rust-format
+msgid "A new version of {name} is available!"
+msgstr "Dostępna jest nowa wersja {name}"
+
+#: src/updater.rs:346
+#, rust-format
+msgid "{name} {new} is out, you have {current}. Install it now?"
+msgstr "Jest już {name} {new}, a masz {current}. Zainstalować teraz?"
+
+#: src/updater.rs:352
+msgid "Downloading the update…"
+msgstr "Pobieranie uaktualnienia…"
+
+#: src/updater.rs:354
+msgid "Installing the update…"
+msgstr "Instalowanie uaktualnienia…"
+
+#: src/updater.rs:355
+#, rust-format
+msgid "{name} restarts as {new}."
+msgstr "{name} uruchomi się ponownie w wersji {new}."
+
+#: src/updater.rs:358
+msgid "The update failed"
+msgstr "Uaktualnienie nie powiodło się"
+
+#: src/updater.rs:360
+msgid "Couldn’t check for updates"
+msgstr "Nie udało się sprawdzić uaktualnień"
+
+#: src/updater.rs:380
+#, rust-format
+msgid "{size} MB"
+msgstr "{size} MB"
+
+#: src/updater.rs:382
+#, rust-format
+msgid "{done} of {total}"
+msgstr "{done} z {total}"
+
+#: src/updater.rs:391
+msgid "Release notes"
+msgstr "Co nowego"
+
+#: src/updater.rs:419
+msgid "Skip This Version"
+msgstr "Pomiń tę wersję"
+
+#: src/updater.rs:422
+msgid "Remind Me Later"
+msgstr "Przypomnij później"
+
+#: src/updater.rs:423
+msgid "Install Update"
+msgstr "Zainstaluj"
+
+#: src/updater.rs:428
+msgid "Close"
+msgstr "Zamknij"
+
+#: src/updater.rs:429
+msgid "Retry"
+msgstr "Ponów"
+
+#: src/updater.rs:433
+msgid "OK"
+msgstr "OK"
+
+#: src/updater.rs:437
+msgid "Cancel"
+msgstr "Anuluj"
+
+#: src/updater.rs:441
+msgid "Hide"
+msgstr "Ukryj"
 
 #: src/window.rs:71
 msgid "General"
@@ -201,120 +306,79 @@ msgstr "Działa tylko z Awake.app."
 msgid "This Mac has no battery."
 msgstr "Ten Mac nie ma baterii."
 
-#: src/window.rs:146
+#: src/window.rs:144
 msgid "Startup"
 msgstr "Uruchamianie"
 
-#: src/window.rs:154
+#: src/window.rs:152
 msgid "Launch at login"
 msgstr "Otwieraj po zalogowaniu"
 
-#: src/window.rs:162
+#: src/window.rs:160
 msgid "Keep awake at launch"
 msgstr "Nie usypiaj po uruchomieniu"
 
-#: src/window.rs:167
+#: src/window.rs:165
 msgid "Screen"
 msgstr "Ekran"
 
-#: src/window.rs:168
+#: src/window.rs:166
 msgid "Let the display sleep"
 msgstr "Pozwól na uśpienie monitora"
 
-#: src/window.rs:171
+#: src/window.rs:169
 msgid "Turn off when the screen locks"
 msgstr "Wyłącz po zablokowaniu ekranu"
 
-#: src/window.rs:175
+#: src/window.rs:173
 msgid "Menu Bar"
 msgstr "Pasek menu"
 
-#: src/window.rs:176
+#: src/window.rs:174
 msgid "Show the time left"
 msgstr "Pokazuj pozostały czas"
 
 #. Translators: the header of the rows Below 20% battery, In Low Power Mode, When unplugged.
-#: src/window.rs:188
+#: src/window.rs:186
 msgid "Turn Off Keep Awake"
 msgstr "Wyłączaj automatycznie"
 
-#: src/window.rs:189
+#: src/window.rs:187
 #, rust-format
 msgid "Below {percent}% battery"
 msgstr "Poniżej {percent}% baterii"
 
 #. Translators: the battery slider's ticks: 10%, 50%, 90%.
-#: src/window.rs:198
+#: src/window.rs:196
 #, rust-format
 msgid "{percent}%"
 msgstr "{percent}%"
 
-#: src/window.rs:201
+#: src/window.rs:199
 msgid "Battery level"
 msgstr "Poziom baterii"
 
-#: src/window.rs:209
+#: src/window.rs:207
 msgid "In Low Power Mode"
 msgstr "W trybie niskiego zużycia energii"
 
-#: src/window.rs:213
+#: src/window.rs:211
 msgid "When unplugged"
 msgstr "Po odłączeniu zasilania"
 
-#: src/window.rs:227
+#: src/window.rs:225
 #, rust-format
 msgid "Version {version}"
 msgstr "Wersja {version}"
 
-#: src/window.rs:228
+#: src/window.rs:226
 msgid "Keeps your Mac awake from the menu bar."
 msgstr "Nie pozwala Macowi zasnąć – prosto z paska menu."
 
-#: src/window.rs:243
+#: src/window.rs:235
 msgid "Donate"
 msgstr "Wesprzyj"
 
-#: src/window.rs:257
+#: src/window.rs:248
 msgid "Acknowledgements"
 msgstr "Podziękowania"
-
-#: src/window.rs:277
-msgid "Check for Updates"
-msgstr "Sprawdź uaktualnienia"
-
-#: src/window.rs:280
-msgid "Checking for updates…"
-msgstr "Sprawdzanie uaktualnień…"
-
-#: src/window.rs:281
-#, rust-format
-msgid "{name} is up to date."
-msgstr "{name} jest aktualny."
-
-#: src/window.rs:283
-#, rust-format
-msgid "{name} {version} is available."
-msgstr "{name} {version} jest dostępny."
-
-#: src/window.rs:284
-msgid "Install and Relaunch"
-msgstr "Zainstaluj i uruchom ponownie"
-
-#: src/window.rs:286
-#, rust-format
-msgid "Downloading the update… {done}%"
-msgstr "Pobieranie uaktualnienia… {done}%"
-
-#: src/window.rs:289 src/window.rs:296
-#, rust-format
-msgid "The update failed: {why}"
-msgstr "Uaktualnienie nie powiodło się: {why}"
-
-#: src/window.rs:290
-#, rust-format
-msgid "Couldn't check for updates: {why}"
-msgstr "Nie można sprawdzić uaktualnień: {why}"
-
-#: src/window.rs:293
-msgid "Try Again"
-msgstr "Spróbuj ponownie"

@@ -52,6 +52,8 @@ const FLOOR_ON: &str = "batteryFloorEnabled";
 const FLOOR: &str = "batteryFloor";
 const OFF_IN_LOW_POWER: &str = "deactivateInLowPowerMode";
 const OFF_UNPLUGGED: &str = "deactivateWhenUnplugged";
+/// Sparkle's key for Skip This Version.
+const SKIPPED: &str = "SUSkippedVersion";
 
 impl Settings {
   pub fn load() -> Self {
@@ -87,4 +89,17 @@ impl Settings {
     flag(OFF_IN_LOW_POWER, self.off_in_low_power);
     flag(OFF_UNPLUGGED, self.off_unplugged);
   }
+}
+
+/// The version Skip This Version passed over, which automatic checks don't offer.
+pub fn skipped() -> Option<String> {
+  let defaults = NSUserDefaults::standardUserDefaults();
+  defaults.stringForKey(&NSString::from_str(SKIPPED)).map(|v| v.to_string())
+}
+
+pub fn skip(version: &str) {
+  let defaults = NSUserDefaults::standardUserDefaults();
+  let (version, key) = (NSString::from_str(version), NSString::from_str(SKIPPED));
+  // SAFETY: a string is a property list's value.
+  unsafe { defaults.setObject_forKey(Some(&version), &key) };
 }
