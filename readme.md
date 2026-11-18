@@ -5,7 +5,7 @@ Keeps your Mac awake from the menu bar, like [KeepingYouAwake](https://github.co
 ## 🌟 Features
 
 - A click on the cup opens the menu and never toggles anything, so a missed click turns nothing off.
-- Keep awake until turned off, or for 15 minutes to 8 hours; the menu counts down the time left, and the menu bar can show its minutes beside the cup.
+- Keep awake until turned off, or for 15 minutes to 8 hours; the menu counts down the time left, and the menu bar can show it beside the cup.
 - Let the display sleep: only the system stays awake (`caffeinate -i` instead of `-d`).
 - Turn off when the screen locks.
 - Battery rules: turn off below a battery level (10–90 %), in Low Power Mode, or when unplugged. A session turned on by hand while a rule applies stays on until its cause clears.
@@ -47,7 +47,7 @@ awake release build
 
 Holds keep the Mac awake beside the menu's session, so a script or an agent never turns off what you turned on. The menu lists them, and Turn Off ends them too. The battery rules apply to them; locking the screen doesn't end them. A command's hold ends with it, even when it's killed.
 
-For Claude Code, hooks in `~/.claude/settings.json` keep the Mac awake while it works, an hour at most if a turn never ends. Each session holds by its own name, so one that ends leaves the others' holds:
+For Claude Code, hooks in `~/.claude/settings.json` keep the Mac awake while it works, an hour at most if a turn never ends. Each session holds by its own name, so one that ends leaves the others' holds. They need `jq`, part of macOS since 15 (`brew install jq` before it):
 
 ```json
 {
@@ -68,8 +68,8 @@ How it compares, measured on an M5 with macOS 27.2:
 
 - Memory at idle, only the menu bar icon: Awake 13 MB, KeepingYouAwake 1.6.8 (Objective-C) 13 MB. The same.
 - Memory with the settings window open: Awake on nimbo 22 MB, the same app with an AppKit window 29 MB.
-- App size: Awake.app 6.5 MB (about 0.6 MB of it the icon), KeepingYouAwake.app 7.6 MB.
-- Stripped binary: 3.9 MiB.
+- App size: Awake.app 3.6 MB (0.8 MB of it the icon), KeepingYouAwake.app 7.6 MB.
+- Stripped binary: 2.6 MiB on Apple silicon, 2.7 MiB on Intel.
 - Clean release build: about 12 s.
 
 ## 🤝 Contributing
