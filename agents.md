@@ -10,7 +10,7 @@ rustdoc (`src/main.rs` first), dependencies `Cargo.toml`, checks the `Makefile`.
 
 ## Scope
 
-- macOS only, Apple Silicon and Intel, macOS 13+ (`SMAppService`). A menu bar app: the menu and
+- macOS only, Apple silicon and Intel, macOS 13+ (`SMAppService`). A menu bar app: the menu and
   a settings window; a Dock icon only while the window is open. With arguments the binary is a
   command line that asks the running app over a Unix socket (`src/cli.rs`).
 - Pure Rust: the status item, its menu, the settings window and launch at login through nimbo;
@@ -35,7 +35,8 @@ rustdoc (`src/main.rs` first), dependencies `Cargo.toml`, checks the `Makefile`.
 
 ## Tests
 
-- `make check` (format, clippy with warnings denied) and `make test` run before every commit.
+- `make check` (format; clippy with warnings denied and rust-lint's rules, on the lines a branch
+  changes) and `make test` run before every commit.
 - Unit-test what breaks silently: the time left, the settings' rules. Look at the menu itself in
   the running app (`make run`: Awake Dev, `me.vladkens.awake-dev`, beside an installed Awake);
   check the assertion with `pmset -g assertions`.
