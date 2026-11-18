@@ -1,18 +1,16 @@
 .PHONY: prepare check test build update clean
 
+LINT := uv run --script https://raw.githubusercontent.com/vladkens/lint/main/rust.py
 CARGO_FLAGS := --release --locked
 
 prepare:
 	cargo +nightly fmt
-	uvx ruff format --line-length 100 scripts
-	uv run scripts/blank-lines.py --fix
+	$(LINT) fix
 	cargo clippy $(CARGO_FLAGS) --fix --all-targets --allow-dirty --allow-no-vcs -- -D warnings
 
 check:
 	cargo +nightly fmt --check
-	uvx ruff format --check --line-length 100 scripts
-	uv run scripts/blank-lines.py
-	cargo clippy $(CARGO_FLAGS) --all-targets -- -D warnings
+	$(LINT) -- $(CARGO_FLAGS)
 
 test:
 	cargo test $(CARGO_FLAGS)
