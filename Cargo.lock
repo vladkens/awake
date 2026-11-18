@@ -13,7 +13,7 @@ dependencies = [
 
 [[package]]
 name = "awake"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "block2",
  "nimbo",
@@ -98,7 +98,7 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 [[package]]
 name = "nimbo"
 version = "0.0.1"
-source = "git+https://github.com/vladkens/nimbo?rev=0e09b17#0e09b17c40655d9aeb7c6320c18a8e362e29b923"
+source = "git+https://github.com/vladkens/nimbo?rev=a1d5b96#a1d5b96c5a963fa11082d8ff4d69d8d93416ad6a"
 dependencies = [
  "block2",
  "dispatch2",
