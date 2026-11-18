@@ -444,11 +444,13 @@ mod tests {
     assert_eq!(parse(&args("off")), ask(Request::Off));
     assert_eq!(parse(&args("status")), ask(Request::Status));
     assert_eq!(parse(&args("hold claude")), ask(Request::Hold("claude".into(), None)));
+
     let held = ask(Request::Hold("claude".into(), Some(mins(10))));
     assert_eq!(parse(&args("hold claude --for 10m")), held);
     assert_eq!(parse(&args("release claude")), ask(Request::Release("claude".into())));
     assert_eq!(parse(&args("-- make -j8")), Ok(Cmd::Exec(args("make -j8"))));
     assert_eq!(parse(&args("--help")), Ok(Cmd::Help));
+
     let bytes = OsString::from_vec(vec![0xff]);
     let exec = parse(&[OsString::from("--"), "printf".into(), bytes.clone()]);
     assert_eq!(exec, Ok(Cmd::Exec(vec!["printf".into(), bytes.clone()])), "any bytes");
