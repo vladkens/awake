@@ -182,6 +182,11 @@ fn socket() -> PathBuf {
   Path::new(&home).join("Library/Application Support").join(INFO.id).join("cli.sock")
 }
 
+/// The app answers at its socket: the binary run bare beside it is the command line's help.
+pub fn running() -> bool {
+  UnixStream::connect(socket()).is_ok()
+}
+
 // MARK: Command
 
 /// Runs the command line's `args` (not empty): its exit status.
@@ -205,108 +210,123 @@ pub fn main(args: &[OsString]) -> i32 {
 }
 
 fn ask(request: Request) -> i32 {
-  let Some(mut stream) = connect(request.wakes()) else {
-    return match request {
-      Request::Status => {
-        println!("Off: {} isn't running", INFO.name);
-        0
-      }
-      Request::Off | Request::Release(_) => 0,
-      _ => {
-        eprintln!("awake: {} isn't running and didn't open", INFO.name);
-        1
-      }
-    };
-  };
-
-  match send(&mut stream, &request) {
-    Ok(reply) if reply.starts_with("error: ") => {
-      eprintln!("awake: {}", &reply["error: ".len()..]);
-      1
+  let mut stream = match connect(request.wakes()) {
+    Ok(stream) => stream,
+    Err(_) if request == Request::Status => {
+      println!("Off: {} isn't running", INFO.name);
+      return 0;
     }
-    Ok(reply) => {
-      if request == Request::Status {
-        print!("{reply}");
-      }
-
-      0
-    }
+    Err(_) if matches!(request, Request::Off | Request::Release(_)) => return 0,
     Err(e) => {
       eprintln!("awake: {e}");
-      1
+      return 1;
     }
+  };
+
+  let reply = match send(&mut stream, &request) {
+    Ok(reply) => reply,
+    Err(e) => {
+      eprintln!("awake: {e}");
+      return 1;
+    }
+  };
+
+  if let Some(e) = reply.strip_prefix("error: ") {
+    eprintln!("awake: {}", e.trim_end());
+    return 1;
   }
+
+  if request == Request::Status {
+    print!("{reply}");
+  }
+
+  0
 }
 
 /// Runs `argv` held by the app, named by its program; held by this process when the app can't be
-/// reached, and not at all when it says no.
+/// reached, and as the rules say when it says no.
 fn exec(argv: &[OsString]) -> i32 {
   let program = Path::new(&argv[0]).file_name().map(|n| n.to_string_lossy().into_owned());
   let name = program.filter(|n| name(n).is_ok()).unwrap_or_else(|| "command".into());
   // Kept open while the command runs: closed, the app lets go.
   let mut held = connect(true);
-  let sent = held.as_mut().map(|stream| send(stream, &Request::Run(name)));
+  let sent = match held.as_mut() {
+    Ok(stream) => send(stream, &Request::Run(name)).map_err(|e| e.to_string()),
+    Err(e) => Err(e.clone()),
+  };
+
   let _own = match sent {
-    Some(Ok(reply)) if !reply.starts_with("error: ") => None,
-    Some(Ok(reply)) => {
-      eprintln!("awake: {}", reply["error: ".len()..].trim_end());
+    Ok(reply) => {
+      if let Some(e) = reply.strip_prefix("error: ") {
+        eprintln!("awake: {}", e.trim_end());
+      }
+
       None
     }
-    Some(Err(e)) => {
-      eprintln!("awake: {e}");
-      None
-    }
-    None => {
-      eprintln!("awake: {} isn't running: this process keeps the Mac awake", INFO.name);
+    Err(e) => {
+      eprintln!("awake: {e}: this process keeps the Mac awake");
       Assertion::new(false)
     }
   };
 
+  run(argv)
+}
+
+/// Runs `argv`: its exit status, 128 and the signal that ended it, or the shell's 126 when it can't
+/// run and 127 when it isn't there.
+fn run(argv: &[OsString]) -> i32 {
   match Command::new(&argv[0]).args(&argv[1..]).status() {
     Ok(status) => status.code().unwrap_or_else(|| 128 + status.signal().unwrap_or(0)),
     Err(e) => {
       eprintln!("awake: {}: {e}", argv[0].to_string_lossy());
-      127
+      if e.kind() == io::ErrorKind::NotFound { 127 } else { 126 }
     }
   }
 }
 
-/// The app's socket; with `open`, the app opened first when it doesn't answer.
-fn connect(open: bool) -> Option<UnixStream> {
+/// The app's socket; with `open`, the app opened first when it doesn't answer. Or why not.
+fn connect(open: bool) -> Result<UnixStream, String> {
   let path = socket();
   if let Ok(stream) = UnixStream::connect(&path) {
-    return Some(stream);
+    return Ok(stream);
   }
 
   if !open {
-    return None;
+    return Err(format!("{} isn't running", INFO.name));
   }
 
   let opened = Command::new("open").args(["-g", "-b", INFO.id]).status();
   if !opened.is_ok_and(|s| s.success()) {
-    return None;
+    return Err(format!("{} isn't running and didn't open", INFO.name));
   }
 
   let start = Instant::now();
   while start.elapsed() < LAUNCH {
     thread::sleep(Duration::from_millis(100));
     if let Ok(stream) = UnixStream::connect(&path) {
-      return Some(stream);
+      return Ok(stream);
     }
   }
 
-  None
+  Err(format!("{} didn't answer", INFO.name))
 }
 
 /// Sends `request`'s line, gives the reply: its lines up to an empty one, which an app that
 /// answers in time sends.
 fn send(stream: &mut UnixStream, request: &Request) -> io::Result<String> {
+  let late = |e: io::Error| match e.kind() {
+    io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut => {
+      io::Error::new(e.kind(), format!("{} didn't answer", INFO.name))
+    }
+    _ => e,
+  };
+
   stream.set_read_timeout(Some(LAUNCH))?;
   stream.set_write_timeout(Some(LAUNCH))?;
-  stream.write_all(format!("{}\n", request.line()).as_bytes())?;
+  stream.write_all(format!("{}\n", request.line()).as_bytes()).map_err(late)?;
   let mut reply = String::new();
   for line in BufReader::new(&*stream).lines() {
-    let line = line?;
+    let line = line.map_err(late)?;
     if line.is_empty() {
       return Ok(reply);
     }
@@ -437,6 +457,13 @@ mod tests {
     for bad in ["", "on 1x", "on 1h 2h", "hold", "hold --for 1h", "hold a --for", "--", "nap"] {
       assert!(parse(&args(bad)).is_err(), "{bad:?}");
     }
+  }
+
+  #[test]
+  fn a_command_that_cant_run_exits_as_a_shell_says() {
+    assert_eq!(run(&args("/nonexistent/awake-test")), 127, "not there");
+    assert_eq!(run(&args("/etc/hosts")), 126, "not a program");
+    assert_eq!(run(&["sh".into(), "-c".into(), "exit 3".into()]), 3);
   }
 
   #[test]
