@@ -17,7 +17,7 @@
 **Click the cup, pick how long**, and your Mac stays awake through a build, a download or a long call. It turns off when the time is up or, if you choose, when the screen locks or the battery runs low. Scripts and agents keep the Mac awake too, from the command line.
 
 <p align="center">
-  <img src="https://github.com/vladkens/awake/blob/assets/awake-v0.2.webp?raw=true" width="720" alt="Awake's settings: the General page in light mode and the Battery page in dark mode" />
+  <img src="https://github.com/vladkens/awake/blob/assets/awake-v0.2.png?raw=true" width="720" alt="Awake's settings: the General page in light mode and the Battery page in dark mode" />
 </p>
 
 ## 💡 Why
