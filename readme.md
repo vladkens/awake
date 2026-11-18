@@ -12,6 +12,7 @@ Keeps your Mac awake from the menu bar, like [KeepingYouAwake](https://github.co
 - Launch at login, and keep awake at launch.
 - Settings… in the menu, or open the app again, to get the settings window.
 - Updates itself from the releases here: checked once a day, Update to … in the menu installs it and relaunches; About has Check for Updates.
+- A command line for scripts and agents: `awake on 1h`, `awake off`, `awake status`, named holds, and `awake -- <command>`.
 - Idle at 0 % CPU: the battery, Low Power Mode, wake and the screen lock come as notifications, nothing polls.
 
 ## 📥 Install
@@ -29,6 +30,32 @@ Click the cup in the menu bar and pick Keep Awake Indefinitely, or a length unde
 
 ```sh
 pmset -g assertions   # shows what keeps the Mac awake
+```
+
+### Command line
+
+The app's binary takes commands and passes them to the running Awake, opening it first when needed. The Homebrew cask links it as `awake`; otherwise run `/Applications/Awake.app/Contents/MacOS/awake`.
+
+```sh
+awake on 1h               # keep awake for an hour: 90 (minutes), 45m, 2h, 1h30m; no length: until off
+awake off                 # turn off, holds too
+awake status              # what keeps the Mac awake
+awake -- make release     # keep awake while the command runs, exit with its status
+awake hold build --for 2h # a named hold: until `awake release build`, or for the length
+awake release build
+```
+
+Holds keep the Mac awake beside the menu's session, so a script or an agent never turns off what you turned on. The menu lists them, and Turn Off ends them too. The battery rules apply to them; locking the screen doesn't end them. A command's hold ends with it, even when it's killed.
+
+For Claude Code, hooks in `~/.claude/settings.json` keep the Mac awake while it works, an hour at most if a turn never ends. Each session holds by its own name, so one that ends leaves the others' holds:
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "awake hold claude-$(jq -r '.session_id[:8]') --for 1h" }] }],
+    "Stop": [{ "hooks": [{ "type": "command", "command": "awake release claude-$(jq -r '.session_id[:8]')" }] }]
+  }
+}
 ```
 
 Awake Dev, `make run`'s, has its own id and settings, so it runs beside an installed Awake. `pmset -g assertions` shows which of the two holds the Mac.

@@ -5,20 +5,25 @@
 //! sleep, off when the screen locks, the time left beside the cup, and the battery's rules, which a
 //! session turned on by hand outlives. The status item, the menu and the window are nimbo's; what
 //! nimbo lacks is AppKit's, in `appkit.rs`. Updates come in place from GitHub's releases
-//! (`updater.rs`).
+//! (`updater.rs`). Run with arguments, the binary is the command line (`cli.rs`), which asks the
+//! running app: on, off, the status, and holds by name or for a command, which keep the Mac awake
+//! beside the session.
 //!
 //!   make run
 
 mod appkit;
+mod cli;
 mod power;
 mod settings;
 mod updater;
 mod window;
 
 use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::thread;
 use std::time::{Duration, SystemTime};
 
+use cli::Request;
 use nimbo::tray::{Item, Menu, Tray};
 use nimbo::{AppInfo, Main, Presence, Proxy, Shortcut, Window, autostart};
 use power::{Assertion, Battery, Change};
@@ -69,6 +74,10 @@ struct Session {
   forced: Option<String>,
 }
 
+/// A hold from the command line: `awake hold`'s by its name and 0, `awake --`'s by its command's
+/// name and connection, while the command runs; with when it ends by itself.
+type Holds = BTreeMap<(String, u64), Option<SystemTime>>;
+
 struct State {
   tray: Tray<Action>,
   proxy: Proxy,
@@ -76,6 +85,11 @@ struct State {
   window: Option<Window<Form>>,
   settings: Settings,
   session: Option<Session>,
+  holds: Holds,
+  /// The holds' assertion, while there are any and no rule says no.
+  held: Option<Assertion>,
+  /// The holds' timer: one that fires for an earlier end finds another number.
+  hold_timer: u64,
   /// Why the app last turned off by itself (not the user), until it is on again.
   stopped: Option<String>,
   /// The session's timer: one that fires for an earlier session finds another number.
@@ -181,7 +195,7 @@ impl State {
       Action::Status => {}
       Action::Settings => self.open_settings(main),
       Action::Quit => main.quit(),
-      Action::Toggle if self.session.is_some() => self.stop(None),
+      Action::Toggle if self.session.is_some() || self.held.is_some() => self.off(),
       Action::Toggle => self.start(None, true),
       Action::For(i) => self.start(Some(LENGTHS[i]), true),
       Action::Update => self.install(),
@@ -219,8 +233,13 @@ impl State {
           }
         }
 
+        if display {
+          self.held = None;
+        }
+
         self.settings.save();
         self.enforce();
+        self.hold();
       }
     }
 
@@ -229,12 +248,16 @@ impl State {
 
   fn on_power(&mut self, change: Change) {
     match change {
-      Change::Battery | Change::LowPowerMode => self.enforce(),
-      // The queue's clock stopped while the Mac slept: the session's end is timed again.
+      Change::Battery | Change::LowPowerMode => {
+        self.enforce();
+        self.hold();
+      }
+      // The queue's clock stopped while the Mac slept: the ends are timed again.
       Change::Woke => {
         self.timer += 1;
         self.expire();
         self.check(false);
+        self.hold();
       }
       Change::Locked if self.settings.off_on_lock && self.session.is_some() => {
         self.stop(Some("screen locked".into()));
@@ -284,6 +307,87 @@ impl State {
     }
 
     self.show();
+  }
+
+  /// Turn Off, `awake off`: the session and the holds.
+  fn off(&mut self) {
+    self.holds.clear();
+    self.hold();
+    self.stop(None);
+  }
+
+  /// What the command line asks, `conn` its connection: the status after it, an error when the
+  /// system refused to keep the Mac awake.
+  fn on_request(&mut self, request: Request, conn: u64) -> String {
+    let wakes = request.wakes();
+    let by_hand = matches!(request, Request::On(_));
+    match request {
+      Request::On(length) => self.start(length, true),
+      Request::Off => self.off(),
+      Request::Status => {}
+      Request::Hold(name, length) => {
+        let until = length.map(|length| SystemTime::now() + length);
+        self.holds.insert((name, 0), until);
+      }
+      Request::Release(name) => _ = self.holds.remove(&(name, 0)),
+      Request::Run(name) => _ = self.holds.insert((name, conn), None),
+    }
+
+    self.hold();
+    self.show();
+    let report = self.report(SystemTime::now());
+    // A rule saying no is no refusal: the status says why.
+    let held = self.held.is_some() || self.why_not().is_some();
+    let refused = if by_hand { self.session.is_none() } else { wakes && !held };
+    if refused { format!("error: {report}") } else { report }
+  }
+
+  /// A command's connection closed: its hold ends.
+  fn on_closed(&mut self, conn: u64) {
+    self.holds.retain(|&(_, c), _| c != conn);
+    self.hold();
+    self.show();
+  }
+
+  /// The holds' assertion as they and the rules say, after those that are due end; the next end
+  /// timed, as a session's.
+  fn hold(&mut self) {
+    let now = SystemTime::now();
+    self.holds.retain(|_, until| until.is_none_or(|until| until > now));
+    if self.holds.is_empty() || self.why_not().is_some() {
+      self.held = None;
+    } else if self.held.is_none() {
+      self.held = Assertion::new(!self.settings.display_sleeps);
+    }
+
+    self.hold_timer += 1;
+    let Some(next) = self.holds.values().flatten().min() else { return };
+    let timer = self.hold_timer;
+    let left = next.duration_since(now).unwrap_or_default();
+    self.proxy.after(early(left), move |_| {
+      with_state(|state| {
+        if state.hold_timer == timer {
+          state.hold();
+          state.show();
+        }
+      });
+    });
+  }
+
+  /// `awake status`: the menu's status, then a line per hold.
+  fn report(&self, now: SystemTime) -> String {
+    let mut out = self.status(now) + "\n";
+    for ((name, conn), until) in &self.holds {
+      let what = match (until, conn) {
+        (Some(until), _) => format!("{} left", left(*until, now)),
+        (None, 0) => "until released".into(),
+        (None, _) => "while the command runs".into(),
+      };
+
+      out += &format!("{name}: {what}\n");
+    }
+
+    out
   }
 
   fn stop(&mut self, why: Option<String>) {
@@ -437,10 +541,10 @@ impl State {
     }
   }
 
-  fn show(&mut self) {
-    let now = SystemTime::now();
-    let status = match (&self.session, &self.stopped) {
-      (Some(session), _) => {
+  /// The menu's first line: on or off and why, the time left, the holds.
+  fn status(&self, now: SystemTime) -> String {
+    let mut status = match (&self.session, &self.held, &self.stopped) {
+      (Some(session), ..) => {
         let mut status = String::from("Keeping awake");
         if let Some(why) = &session.forced {
           status += &format!(" despite {why}");
@@ -452,14 +556,31 @@ impl State {
 
         status
       }
-      (None, Some(why)) => format!("Turned off · {why}"),
-      (None, None) => "Off".into(),
+      (None, Some(_), _) => "Keeping awake".into(),
+      (None, None, Some(why)) => format!("Turned off · {why}"),
+      (None, None, None) => "Off".into(),
     };
 
-    let (icon, description) = match &self.session {
-      Some(_) => ("cup.and.saucer.fill", "keeping awake"),
-      None => ("cup.and.saucer", "off"),
-    };
+    if !self.holds.is_empty() {
+      let mut names: Vec<_> = self.holds.keys().map(|(name, _)| name.as_str()).collect();
+      names.dedup();
+      let names = names.join(", ");
+      match (&self.held, self.why_not()) {
+        (Some(_), _) => status += &format!(" · for {names}"),
+        (None, Some(why)) => status += &format!(" · not for {names}: {why}"),
+        (None, None) => status += &format!(" · not for {names}: the system refused"),
+      }
+    }
+
+    status
+  }
+
+  fn show(&mut self) {
+    let now = SystemTime::now();
+    let status = self.status(now);
+    let on = self.session.is_some() || self.held.is_some();
+    let (icon, description) =
+      if on { ("cup.and.saucer.fill", "keeping awake") } else { ("cup.and.saucer", "off") };
 
     if self.icon != icon {
       self.icon = icon;
@@ -479,7 +600,7 @@ impl State {
 
     self.tray.set_tooltip(&format!("{}: {description}", INFO.name));
     // The same items as before: an open menu changes in place.
-    let (on, length) = (self.session.is_some(), self.session.as_ref().and_then(|s| s.length));
+    let length = self.session.as_ref().and_then(|s| s.length);
     // An item come or gone would wait for the menu to close, the countdown with it: the item comes
     // or goes then, and the open menu keeps the old one, disabled.
     let mut update = update_item(self.updater.showing());
@@ -548,6 +669,13 @@ fn secs_left(until: SystemTime, now: SystemTime) -> u64 {
 fn main() {
   // First: started by an update, the binary is its installer and exits here.
   let updated = shipo::finish();
+
+  // With arguments, the command line; the app has none.
+  let args: Vec<_> = std::env::args_os().skip(1).collect();
+  if !args.is_empty() {
+    std::process::exit(cli::main(&args));
+  }
+
   tracing_subscriber::fmt()
     .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
     .with_writer(std::io::stderr)
@@ -578,6 +706,9 @@ fn start(main: &mut Main) {
     window: None,
     settings: Settings::load(),
     session: None,
+    holds: BTreeMap::new(),
+    held: None,
+    hold_timer: 0,
     stopped: None,
     timer: 0,
     menu_open: false,
@@ -589,6 +720,7 @@ fn start(main: &mut Main) {
     _watch: None,
   };
   STATE.set(Some(state));
+  cli::listen(main.proxy(), on_request, |conn| with_state(|state| state.on_closed(conn)));
 
   let watch = power::watch(|change| with_state(|state| state.on_power(change)));
   with_state(|state| {
@@ -600,6 +732,13 @@ fn start(main: &mut Main) {
     state.check(false);
     state.show();
   });
+}
+
+/// [`State::on_request`], for the command line's server.
+fn on_request(request: Request, conn: u64) -> String {
+  let mut reply = "error: Awake is busy, try again".to_string();
+  with_state(|state| reply = state.on_request(request, conn));
+  reply
 }
 
 #[cfg(test)]
