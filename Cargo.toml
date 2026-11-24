@@ -22,7 +22,7 @@ plist.CFBundleLocalizations = ["en", "de", "es", "fr", "it", "ja", "ko", "pl", "
 
 [dependencies]
 block2 = "0.6.2"
-nimbo = { version = "0.0.1", git = "https://github.com/vladkens/nimbo", rev = "a1d5b96" }
+nimbo = { version = "0.1", git = "https://github.com/vladkens/nimbo", branch = "release-0.1", features = ["tray", "autostart", "png"] }
 objc2 = "0.6.5"
 objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSImage", "NSBitmapImageRep", "NSImageRep", "NSGraphicsContext", "NSGraphics", "NSWorkspace"] }
 objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFArray", "CFRunLoop", "CFString", "CFNotificationCenter"] }
@@ -31,6 +31,9 @@ objc2-io-kit = { version = "0.3.2", default-features = false, features = ["std",
 shipo = { version = "0.2.1", default-features = false }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt", "ansi", "env-filter"] }
+
+[dev-dependencies]
+nimbo = { version = "0.1", git = "https://github.com/vladkens/nimbo", branch = "release-0.1", features = ["harness"] }
 
 [profile.release]
 debug = 1

@@ -26,9 +26,10 @@ use std::thread;
 use std::time::{Duration, SystemTime};
 
 use cli::Request;
-use nimbo::tray::{Item, Menu, Tray};
+use nimbo::tray::Tray;
 use nimbo::{
-  AppInfo, Localizations, Localized, Main, Presence, Proxy, Shortcut, Window, autostart, t, tn,
+  AppInfo, Item, Localizations, Localized, Main, Menu, Presence, Proxy, Shortcut, Window,
+  autostart, t, tn,
 };
 use power::{Assertion, Battery, Change};
 use settings::Settings;
@@ -41,12 +42,11 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// The app this build is: [RELEASE], or [DEV] in a debug build.
 const INFO: AppInfo = if cfg!(debug_assertions) { DEV } else { RELEASE };
 /// Awake, as released and installed: its id is in every install (settings, login item).
-const RELEASE: AppInfo =
-  AppInfo { id: "me.vladkens.awake", name: "Awake", presence: Presence::Accessory };
+const RELEASE: AppInfo = AppInfo::new("me.vladkens.awake", "Awake").presence(Presence::Accessory);
 /// Awake Dev, `make run`'s: an app of its own beside an installed Awake, with its own settings,
 /// login item and instance, all by its id.
 const DEV: AppInfo =
-  AppInfo { id: "me.vladkens.awake-dev", name: "Awake Dev", presence: Presence::Accessory };
+  AppInfo::new("me.vladkens.awake-dev", "Awake Dev").presence(Presence::Accessory);
 const HOUR: Duration = minutes(60);
 /// The app's translations (`make i18n` keeps them): its English texts are the keys.
 const LOCALES: Localizations = &[
@@ -166,7 +166,7 @@ fn menu(
   ];
   items.extend(update);
   items.push(Item::button(Action::Settings, &t!("Settings…")).key(Shortcut::char(',').cmd()));
-  let quit = Item::button(Action::Quit, &t!("Quit {name}", name = INFO.name));
+  let quit = Item::button(Action::Quit, &t!("Quit {name}", name = INFO.name()));
   items.push(quit.key(Shortcut::char('q').cmd()));
   Menu::new(items)
 }
@@ -793,9 +793,9 @@ impl Why {
 /// The status item's tooltip, which VoiceOver reads too.
 fn tooltip(on: bool) -> String {
   if on {
-    t!("{name}: keeping awake", name = INFO.name)
+    t!("{name}: keeping awake", name = INFO.name())
   } else {
-    t!("{name}: off", name = INFO.name)
+    t!("{name}: off", name = INFO.name())
   }
 }
 
@@ -927,9 +927,9 @@ mod tests {
   #[test]
   fn awake_dev_is_an_app_of_its_own() {
     // What installs and macOS know Awake by: never changed.
-    assert_eq!((RELEASE.id, RELEASE.name), ("me.vladkens.awake", "Awake"));
-    assert_eq!((DEV.id, DEV.name), ("me.vladkens.awake-dev", "Awake Dev"));
-    assert_eq!(INFO.id, RELEASE.id, "a release build, as `make test`'s, is Awake");
+    assert_eq!((RELEASE.id(), RELEASE.name()), ("me.vladkens.awake", "Awake"));
+    assert_eq!((DEV.id(), DEV.name()), ("me.vladkens.awake-dev", "Awake Dev"));
+    assert_eq!(INFO.id(), RELEASE.id(), "a release build, as `make test`'s, is Awake");
   }
 
   #[test]

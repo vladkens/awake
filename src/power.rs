@@ -37,7 +37,7 @@ impl Assertion {
     // `kIOPMAssertPreventUserIdleDisplaySleep` and `…SystemSleep`, macros of IOPMLib.h.
     let kind = if display { "PreventUserIdleDisplaySleep" } else { "PreventUserIdleSystemSleep" };
     let kind = CFString::from_static_str(kind);
-    let name = CFString::from_str(&format!("{} keeps the Mac awake", crate::INFO.name));
+    let name = CFString::from_str(&format!("{} keeps the Mac awake", crate::INFO.name()));
     let mut id = 0;
     // SAFETY: both strings are there, `id` is ours to write.
     let ret = unsafe {
