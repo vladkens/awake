@@ -179,7 +179,7 @@ fn check(length: Duration) -> Option<Duration> {
 /// The app's socket: one per app, Awake Dev's its own.
 fn socket() -> PathBuf {
   let home = std::env::var_os("HOME").unwrap_or_default();
-  Path::new(&home).join("Library/Application Support").join(INFO.id).join("cli.sock")
+  Path::new(&home).join("Library/Application Support").join(INFO.id()).join("cli.sock")
 }
 
 /// The app answers at its socket: the binary run bare beside it is the command line's help.
@@ -213,7 +213,7 @@ fn ask(request: Request) -> i32 {
   let mut stream = match connect(request.wakes()) {
     Ok(stream) => stream,
     Err(_) if request == Request::Status => {
-      println!("Off: {} isn't running", INFO.name);
+      println!("Off: {} isn't running", INFO.name());
       return 0;
     }
     Err(_) if matches!(request, Request::Off | Request::Release(_)) => return 0,
@@ -292,12 +292,12 @@ fn connect(open: bool) -> Result<UnixStream, String> {
   }
 
   if !open {
-    return Err(format!("{} isn't running", INFO.name));
+    return Err(format!("{} isn't running", INFO.name()));
   }
 
-  let opened = Command::new("open").args(["-g", "-b", INFO.id]).status();
+  let opened = Command::new("open").args(["-g", "-b", INFO.id()]).status();
   if !opened.is_ok_and(|s| s.success()) {
-    return Err(format!("{} isn't running and didn't open", INFO.name));
+    return Err(format!("{} isn't running and didn't open", INFO.name()));
   }
 
   let start = Instant::now();
@@ -308,7 +308,7 @@ fn connect(open: bool) -> Result<UnixStream, String> {
     }
   }
 
-  Err(format!("{} didn't answer", INFO.name))
+  Err(format!("{} didn't answer", INFO.name()))
 }
 
 /// Sends `request`'s line, gives the reply: its lines up to an empty one, which an app that
@@ -316,7 +316,7 @@ fn connect(open: bool) -> Result<UnixStream, String> {
 fn send(stream: &mut UnixStream, request: &Request) -> io::Result<String> {
   let late = |e: io::Error| match e.kind() {
     io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut => {
-      io::Error::new(e.kind(), format!("{} didn't answer", INFO.name))
+      io::Error::new(e.kind(), format!("{} didn't answer", INFO.name()))
     }
     _ => e,
   };
@@ -335,7 +335,7 @@ fn send(stream: &mut UnixStream, request: &Request) -> io::Result<String> {
     reply.push('\n');
   }
 
-  Err(io::Error::new(io::ErrorKind::UnexpectedEof, format!("{} gave no reply", INFO.name)))
+  Err(io::Error::new(io::ErrorKind::UnexpectedEof, format!("{} gave no reply", INFO.name())))
 }
 
 // MARK: Server
@@ -349,7 +349,7 @@ pub type Handler = fn(Request, u64) -> String;
 pub fn listen(proxy: Proxy, on: Handler, closed: fn(u64)) {
   let path = socket();
   if UnixStream::connect(&path).is_ok() {
-    tracing::warn!("cli: another {} answers at {}", INFO.name, path.display());
+    tracing::warn!("cli: another {} answers at {}", INFO.name(), path.display());
     return;
   }
 

@@ -9,8 +9,8 @@
 
 use nimbo::autostart::State as Login;
 use nimbo::{
-  Align, App, Color, Config, ControlSize, Font, FormRow, FormStyle, Icon, Localized, Png, Slider,
-  Style, TabItem, TextStyle, Ui, grow, px, rgb, t,
+  Align, App, Color, Config, ControlSize, FormRow, FormStyle, Icon, Localized, Png, Slider, Style,
+  Tag, TextStyle, Ui, grow, px, rgb, t,
 };
 
 use crate::settings::{FLOOR_MAX, FLOOR_MIN, FLOOR_STEP, Settings};
@@ -66,11 +66,11 @@ enum Page {
   About,
 }
 
-fn pages() -> [TabItem<'static, Page>; 3] {
+fn pages() -> [Tag<'static, Page>; 3] {
   [
-    TabItem::new(Page::General, Icon::GEAR, t!("General").as_str()),
-    TabItem::new(Page::Battery, BATTERY, t!("Battery").as_str()),
-    TabItem::new(Page::About, Icon::INFO, t!("About").as_str()),
+    Tag::new(Page::General, t!("General").as_str()).icon(Icon::GEAR),
+    Tag::new(Page::Battery, t!("Battery").as_str()).icon(BATTERY),
+    Tag::new(Page::About, t!("About").as_str()).icon(Icon::INFO),
   ]
 }
 
@@ -106,7 +106,7 @@ pub struct Shown {
   /// The Mac has a battery.
   pub battery: bool,
   /// Launch at login; `Err` where it can't (a bare executable).
-  pub login: Result<Login, String>,
+  pub login: Result<Login, nimbo::Error>,
   /// The updater's state, `None` where the app can't update.
   pub update: Option<Update>,
 }
@@ -133,7 +133,7 @@ impl Form {
   /// The window's config and its app; `on` hears the [`FormEvent`]s and takes each from the loop.
   pub fn new(shown: Shown, on: impl Fn(FormEvent) + 'static) -> (Config, Self) {
     // The first frame fits the height to the page ([`Ui::fit_window_height`]).
-    let cfg = Config::new(crate::INFO.name, WIDTH, 400.0).fixed().unified();
+    let cfg = Config::new(crate::INFO.name(), WIDTH, 400.0).fixed().unified();
     let form = Self { page: Page::General, shown, on: Box::new(on) };
     (cfg.localizations(crate::LOCALES), form)
   }
@@ -153,28 +153,28 @@ impl Form {
 
       let row = FormRow::new(label(t!("Launch at login").as_str(), why)).caption(LOGIN).tile(POWER);
       ui.disabled(self.shown.login.is_err()).form_row(&tiled(fs, GREY), row, |ui| {
-        if ui.toggle(&mut login, "").changed {
+        if ui.toggle(&mut login, ()).changed {
           self.send(FormEvent::Login(login));
         }
       });
 
       let s = &mut self.shown.settings;
       let row = FormRow::new(t!("Keep awake at launch")).caption(ON_LAUNCH).tile(CUP);
-      ui.form_row(&tiled(fs, ORANGE), row, |ui| ui.toggle(&mut s.on_launch, ""));
+      ui.form_row(&tiled(fs, ORANGE), row, |ui| ui.toggle(&mut s.on_launch, ()));
     });
 
     let s = &mut self.shown.settings;
     ui.form_section(fs, t!("Screen"), |ui| {
       let row = FormRow::new(t!("Let the display sleep")).caption(DISPLAY).tile(SCREEN);
-      ui.form_row(&tiled(fs, BLUE), row, |ui| ui.toggle(&mut s.display_sleeps, ""));
+      ui.form_row(&tiled(fs, BLUE), row, |ui| ui.toggle(&mut s.display_sleeps, ()));
 
       let row = FormRow::new(t!("Turn off when the screen locks")).caption(LOCKS).tile(LOCK);
-      ui.form_row(&tiled(fs, INDIGO), row, |ui| ui.toggle(&mut s.off_on_lock, ""));
+      ui.form_row(&tiled(fs, INDIGO), row, |ui| ui.toggle(&mut s.off_on_lock, ()));
     });
 
     ui.form_section(fs, t!("Menu Bar"), |ui| {
       let row = FormRow::new(t!("Show the time left")).caption(SHOW_LEFT).tile(TIMER);
-      ui.form_row(&tiled(fs, PURPLE), row, |ui| ui.toggle(&mut s.show_left, ""));
+      ui.form_row(&tiled(fs, PURPLE), row, |ui| ui.toggle(&mut s.show_left, ()));
     });
   }
 
@@ -204,15 +204,15 @@ impl Form {
         }
       };
       let row = FormRow::new(label(&name, why)).caption(FLOOR).footer(level).tile(LOW);
-      ui.disabled(no_battery).form_row(&tiled(fs, RED), row, |ui| ui.toggle(&mut s.floor_on, ""));
+      ui.disabled(no_battery).form_row(&tiled(fs, RED), row, |ui| ui.toggle(&mut s.floor_on, ()));
 
       let row = FormRow::new(t!("In Low Power Mode")).caption(LOW_POWER).tile(BATTERY);
-      ui.form_row(&tiled(fs, YELLOW), row, |ui| ui.toggle(&mut s.off_in_low_power, ""));
+      ui.form_row(&tiled(fs, YELLOW), row, |ui| ui.toggle(&mut s.off_in_low_power, ()));
 
       let row =
         FormRow::new(label(t!("When unplugged").as_str(), why)).caption(UNPLUGGED).tile(PLUG);
       ui.disabled(no_battery)
-        .form_row(&tiled(fs, GREEN), row, |ui| ui.toggle(&mut s.off_unplugged, ""));
+        .form_row(&tiled(fs, GREEN), row, |ui| ui.toggle(&mut s.off_unplugged, ()));
     });
   }
 
@@ -223,14 +223,14 @@ impl Form {
     ui.col(column, |ui| {
       ui.image(ICON_LARGE, Style::new().w(px(96.0)).h(px(96.0)));
       ui.el(Style::new().h(px(6.0)));
-      ui.text(crate::INFO.name, t.label().font(Font { size: 17.0, ..t.bold }));
-      ui.text(t!("Version {version}", version = crate::VERSION), fs.caption);
-      ui.text(t!("Keeps your Mac awake from the menu bar."), fs.caption);
+      ui.text(crate::INFO.name(), t.label().font(t.bold().size(17.0)));
+      ui.text(t!("Version {version}", version = crate::VERSION), fs.caption());
+      ui.text(t!("Keeps your Mac awake from the menu bar."), fs.caption());
       ui.el(Style::new().h(px(6.0)));
 
       let (text, button) = self.shown.update.clone().map(update).unwrap_or_default();
       if let Some(text) = text {
-        ui.text(&text, fs.caption);
+        ui.text(&text, fs.caption());
         ui.el(Style::new().h(px(6.0)));
       }
 
@@ -240,12 +240,12 @@ impl Form {
           open(SOURCE);
         }
 
-        if ui.id(("link", "coffee")).help(tip(COFFEE)).button(&t!("Donate")).clicked {
+        if ui.id(("link", "coffee")).help(tip(COFFEE)).button(t!("Donate")).clicked {
           open(COFFEE);
         }
 
         if let Some((label, event)) = button
-          && ui.id("update").button(&label).clicked
+          && ui.id("update").button(label).clicked
         {
           self.send(event);
         }
@@ -253,7 +253,7 @@ impl Form {
     });
 
     // A row's controls go on its name's line: the ↗ is centred in the whole row instead.
-    let row_h = 2.0 * fs.pad_y + ui.line_height(fs.label) + 2.0 + ui.line_height(fs.caption);
+    let row_h = 2.0 * fs.pad_y() + ui.line_height(fs.label()) + 2.0 + ui.line_height(fs.caption());
     ui.form_section(fs, t!("Acknowledgements"), |ui| {
       for (name, what, url) in ACKS {
         ui.form_row(fs, FormRow::new(name).caption(what), |ui| {
@@ -273,7 +273,7 @@ impl Form {
 /// The updater's line and its button, as Sparkle's About: Check for Updates, what the check found,
 /// the download.
 fn update(update: Update) -> (Option<String>, Option<(Localized, FormEvent)>) {
-  let name = crate::INFO.name;
+  let name = crate::INFO.name();
   let check = Some((t!("Check for Updates"), FormEvent::Check));
   match update {
     Update::Idle => (None, check),
@@ -299,7 +299,7 @@ fn update(update: Update) -> (Option<String>, Option<(Localized, FormEvent)>) {
 
 /// `fs` with its rows' tiles in `color`, their symbols white.
 fn tiled(fs: &FormStyle, color: Color) -> FormStyle {
-  FormStyle { tile: fs.tile.bg(color), tile_text: fs.tile_text.color(WHITE), ..*fs }
+  fs.with_tile(fs.tile().bg(color)).with_tile_text(fs.tile_text().color(WHITE))
 }
 
 /// `url` in the browser.
@@ -325,10 +325,10 @@ impl App for Form {
     ui.fit_window_height(WIDTH, 200.0, 800.0);
     let before = self.shown.settings;
     let fs = FormStyle::plates(&ui.theme());
-    ui.col(Style::new().grow().bg(fs.bg), |ui| {
+    ui.col(Style::new().grow().bg(fs.bg()), |ui| {
       ui.id("tabs").toolbar_tabs(&fs, &mut self.page, &pages());
       // Keyed by the tab: each page's switches keep their own state.
-      ui.id(("page", self.page)).col(fs.page, |ui| match self.page {
+      ui.id(("page", self.page)).col(fs.page(), |ui| match self.page {
         Page::General => self.general(ui, &fs),
         Page::Battery => self.battery(ui, &fs),
         Page::About => self.about(ui, &fs),
@@ -357,8 +357,8 @@ mod tests {
     let settings = Settings { floor_on: true, ..Settings::default() };
     let shown = Shown { settings, battery: true, login: Ok(Login::Enabled), update };
     let (cfg, form) = Form::new(shown, |_| {});
-    let mut h = Harness::new(form, cfg.size, 2.0);
-    h.set_titlebar(Some(harness::mac_titlebar(cfg.title, false)));
+    let mut h = Harness::new(form, cfg.size(), 2.0);
+    h.set_titlebar(Some(harness::mac_titlebar(cfg.title(), false)));
     if let Ok(tag) = std::env::var("AWAKE_SHOTS_LOCALE") {
       h.set_locale(Locale::Tag(tag.leak()), crate::LOCALES);
     }
